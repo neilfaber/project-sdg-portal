@@ -26,7 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="container flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
               <GithubIcon className="h-8 w-8 text-primary" />
-              <span className="font-semibold text-xl">SDG Coding Hub</span>
+              <span className="font-semibold text-xl">LearnHub</span>
             </Link>
 
             {/* Desktop Navigation */}
