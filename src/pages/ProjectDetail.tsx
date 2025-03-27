@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import SDGBadge from '../components/SDGBadge';
 import ContactModal from '../components/ContactModal';
-import { ArrowLeft, Calendar, GitHub, Heart, MessageSquare, Send, Share2, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Github, Heart, MessageSquare, Send, Share2, User } from 'lucide-react';
 import { mockProjects } from '../data/mockData';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -309,7 +308,7 @@ const ProjectDetail = () => {
                   rel="noopener noreferrer"
                   className="w-full btn-outline flex items-center justify-center py-2 mb-4 rounded-lg"
                 >
-                  <GitHub className="mr-2 h-4 w-4" /> View on GitHub
+                  <Github className="mr-2 h-4 w-4" /> View on GitHub
                 </a>
               ) : (
                 <p className="text-sm text-muted-foreground mb-4">GitHub repository not available for this project</p>
