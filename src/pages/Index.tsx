@@ -11,23 +11,23 @@ import { Button } from '../components/ui/button';
 const testimonials = [
   {
     id: 1,
-    name: "Sarah Johnson",
+    name: "Soham",
     role: "Computer Science Student",
     avatar: "https://i.pravatar.cc/150?u=sarah",
     quote: "LearnHub helped me showcase my Python game project and get feedback from peers. The SDG alignment made my work more meaningful."
   },
   {
     id: 2,
-    name: "Michael Chen",
+    name: "Chaitanya Jatan",
     role: "Digital Media Arts",
     avatar: "https://i.pravatar.cc/150?u=michael",
     quote: "As a creative coder, this platform gave me exposure to industry mentors who appreciated my project's focus on climate action."
   },
   {
     id: 3,
-    name: "Priya Patel",
+    name: "Neil Faber",
     role: "Data Science Major",
-    avatar: "https://i.pravatar.cc/150?u=priya",
+    avatar: "https://i.pravatar.cc/150?u=",
     quote: "The feedback I received on my data visualization project helped me refine it for a national competition where we won first place!"
   }
 ];
