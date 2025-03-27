@@ -1,7 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import SDGBadge from './SDGBadge';
+import { Heart, MessageSquare } from 'lucide-react';
+import { useToast } from '../components/ui/use-toast';
 
 export interface ProjectData {
   id: string;
@@ -14,19 +16,58 @@ export interface ProjectData {
     members: string[];
   };
   category: string;
+  year?: string;
+  likes?: number;
+  comments?: number;
+  gitHubUrl?: string;
 }
 
 interface ProjectCardProps {
   project: ProjectData;
+  isRecommended?: boolean;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, isRecommended = false }) => {
+  const { toast } = useToast();
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(project.likes || Math.floor(Math.random() * 50));
+  const [commentCount, setCommentCount] = useState(project.comments || Math.floor(Math.random() * 20));
+  
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if user is logged in
+    const user = localStorage.getItem('user');
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to like projects",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (liked) {
+      setLikeCount(prev => prev - 1);
+    } else {
+      setLikeCount(prev => prev + 1);
+    }
+    setLiked(!liked);
+  };
+
   return (
     <Link 
       to={`/project/${project.id}`} 
       className="group block"
     >
-      <div className="glass-card rounded-xl overflow-hidden hover-scale">
+      <div className="glass-card rounded-xl overflow-hidden hover-scale relative">
+        {isRecommended && (
+          <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center py-1 text-sm font-medium z-10">
+            Recommended for you
+          </div>
+        )}
+        
         <div className="aspect-video relative overflow-hidden">
           <img 
             src={project.imageUrl} 
@@ -46,17 +87,44 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
         </div>
         
         <div className="p-4">
-          <div className="text-xs font-medium text-primary uppercase mb-1">
-            {project.category}
+          <div className="flex justify-between items-start mb-1">
+            <div className="text-xs font-medium text-primary uppercase">
+              {project.category}
+            </div>
+            {project.year && (
+              <div className="text-xs text-muted-foreground">
+                {project.year}
+              </div>
+            )}
           </div>
+          
           <h3 className="font-semibold text-lg mb-2 line-clamp-1">
             {project.title}
           </h3>
+          
           <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
             {project.description}
           </p>
-          <div className="text-xs text-muted-foreground">
-            By <span className="font-medium">{project.team.name}</span>
+          
+          <div className="flex justify-between items-center">
+            <div className="text-xs text-muted-foreground">
+              By <span className="font-medium">{project.team.name}</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleLike}
+                className="flex items-center gap-1 text-xs"
+              >
+                <Heart size={14} className={liked ? "fill-red-500 text-red-500" : ""} />
+                <span>{likeCount}</span>
+              </button>
+              
+              <div className="flex items-center gap-1 text-xs">
+                <MessageSquare size={14} />
+                <span>{commentCount}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

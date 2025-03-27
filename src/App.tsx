@@ -8,6 +8,10 @@ import Index from "./pages/Index";
 import Discover from "./pages/Discover";
 import ProjectDetail from "./pages/ProjectDetail";
 import NotFound from "./pages/NotFound";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
+import Profile from "./pages/Profile";
+import CreateProject from "./pages/CreateProject";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +25,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/create-project" element={<CreateProject />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

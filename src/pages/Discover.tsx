@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
 import SDGBadge from '../components/SDGBadge';
-import { Filter, Search, SlidersHorizontal } from 'lucide-react';
+import { Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { mockProjects } from '../data/mockData';
 import { ProjectData } from '../components/ProjectCard';
+import { Button } from '../components/ui/button';
 
 const categories = [
   'All Categories',
@@ -15,17 +17,50 @@ const categories = [
   'Mobile Apps',
   'Digital Art',
   'Videos',
+  'Documentaries',
   'Data Visualizations'
 ];
 
+const years = ['All Years', '2022', '2023', '2024'];
 const sdgNumbers = Array.from({ length: 17 }, (_, i) => i + 1);
 
 const Discover = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedYear, setSelectedYear] = useState('All Years');
   const [selectedSDGs, setSelectedSDGs] = useState<number[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<ProjectData[]>(mockProjects);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('user');
+    setIsLoggedIn(!!storedUser);
+    
+    // Assign year to mock projects if not already there
+    mockProjects.forEach(project => {
+      if (!project.year) {
+        project.year = ['2022', '2023', '2024'][Math.floor(Math.random() * 3)];
+      }
+    });
+    
+    // Check for user preferences for recommendations
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      if (user.preferences && user.preferences.length > 0) {
+        // Move projects matching user preferences to the beginning
+        const userPrefs = user.preferences;
+        const sortedProjects = [...mockProjects].sort((a, b) => {
+          const aMatchesPref = userPrefs.includes(a.category) ? 1 : 0;
+          const bMatchesPref = userPrefs.includes(b.category) ? 1 : 0;
+          return bMatchesPref - aMatchesPref;
+        });
+        
+        setFilteredProjects(sortedProjects);
+      }
+    }
+  }, []);
 
   const toggleSDG = (sdgNumber: number) => {
     setSelectedSDGs(prev => 
@@ -53,6 +88,11 @@ const Discover = () => {
     if (selectedCategory !== 'All Categories') {
       result = result.filter(project => project.category === selectedCategory);
     }
+    
+    // Apply year filter
+    if (selectedYear !== 'All Years') {
+      result = result.filter(project => project.year === selectedYear);
+    }
 
     // Apply SDG filter
     if (selectedSDGs.length > 0) {
@@ -62,16 +102,29 @@ const Discover = () => {
     }
 
     setFilteredProjects(result);
-  }, [searchTerm, selectedCategory, selectedSDGs]);
+  }, [searchTerm, selectedCategory, selectedYear, selectedSDGs]);
+
+  // Check if there are any recommended projects based on user preferences
+  const hasRecommendations = isLoggedIn && filteredProjects.length > 0;
 
   return (
     <Layout>
       <div className="page-container py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">Discover Projects</h1>
-          <p className="text-muted-foreground">
-            Explore student coding projects aligned with Sustainable Development Goals.
-          </p>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Discover Projects</h1>
+            <p className="text-muted-foreground">
+              Explore student coding projects aligned with Sustainable Development Goals.
+            </p>
+          </div>
+          
+          {isLoggedIn && (
+            <Link to="/create-project">
+              <Button>
+                <Plus size={16} className="mr-2" /> Add Project
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
@@ -104,6 +157,30 @@ const Discover = () => {
                     />
                     <label htmlFor={category} className="text-sm cursor-pointer">
                       {category}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="glass-card rounded-xl p-4">
+              <h3 className="font-medium flex items-center gap-2 mb-3">
+                <Filter size={18} />
+                Year
+              </h3>
+              <div className="space-y-2">
+                {years.map((year) => (
+                  <div key={year} className="flex items-center">
+                    <input
+                      type="radio"
+                      id={year}
+                      name="year"
+                      checked={selectedYear === year}
+                      onChange={() => setSelectedYear(year)}
+                      className="mr-2"
+                    />
+                    <label htmlFor={year} className="text-sm cursor-pointer">
+                      {year}
                     </label>
                   </div>
                 ))}
@@ -159,10 +236,24 @@ const Discover = () => {
               {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'} found
             </p>
 
+            {/* Recommended Section */}
+            {hasRecommendations && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">Recommended for You</h2>
+                <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="animate-fade-in">
+                      <ProjectCard project={filteredProjects[0]} isRecommended={true} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Projects Grid */}
             {filteredProjects.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProjects.map((project) => (
+                {filteredProjects.slice(hasRecommendations ? 1 : 0).map((project) => (
                   <div key={project.id} className="animate-fade-in">
                     <ProjectCard project={project} />
                   </div>
