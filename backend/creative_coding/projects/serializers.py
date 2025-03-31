@@ -52,6 +52,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
     created_year = serializers.SerializerMethodField()
+    features = serializers.SerializerMethodField()
     
     class Meta:
         model = Project
@@ -59,6 +60,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'project_id', 
             'title',
             'description',
+            'features',
             'category',
             'github_link',
             'media_link',
@@ -110,6 +112,15 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     def get_created_year(self, obj):
         return obj.created_at.year
 
+    def get_features(self, obj):
+        return obj.get_features()
+
 class CategorySerializer(serializers.Serializer):
     name = serializers.CharField()
-    count = serializers.IntegerField() 
+    count = serializers.IntegerField()
+
+class RatingRangeSerializer(serializers.Serializer):
+    range = serializers.CharField()
+    count = serializers.IntegerField()
+    min_rating = serializers.FloatField()
+    max_rating = serializers.FloatField() 

@@ -1,4 +1,5 @@
 from django.db import models
+import json
 
 # Create your models here.
 class Project(models.Model):
@@ -16,6 +17,7 @@ class Project(models.Model):
     team = models.ForeignKey('teams.StudentTeam', on_delete=models.CASCADE, related_name='projects')
     title = models.CharField(max_length=255)
     description = models.TextField()
+    features = models.TextField(blank=True, null=True, help_text="List of project features as bullet points (stored as JSON)")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     github_link = models.CharField(max_length=255, blank=True, null=True)
     media_link = models.CharField(max_length=255, blank=True, null=True)
@@ -28,6 +30,14 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+
+    def set_features(self, features_list):
+        self.features = json.dumps(features_list)
+
+    def get_features(self):
+        if self.features:
+            return json.loads(self.features)
+        return []
 
 
 class SDG(models.Model):

@@ -1,13 +1,14 @@
 from django.shortcuts import render
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
-from django.db.models import Count
+from django.db.models import Count, Case, When, Value, BooleanField
 from .models import Project, SDG
 from .serializers import (
     ProjectListSerializer, 
     SDGSerializer, 
     CategorySerializer, 
-    ProjectDetailSerializer
+    ProjectDetailSerializer,
+    RatingRangeSerializer
 )
 
 # Create your views here.
@@ -27,11 +28,21 @@ class ProjectListView(generics.ListAPIView):
         sdg_id = self.request.query_params.get('sdg')
         if sdg_id:
             queryset = queryset.filter(sdgs__sdg_id=sdg_id)
-            
+
         # Filter by year
         year = self.request.query_params.get('year')
         if year:
             queryset = queryset.filter(created_at__year=year)
+
+            
+        # Filter by rating range
+        min_rating = self.request.query_params.get('min_rating')
+        max_rating = self.request.query_params.get('max_rating')
+        
+        if min_rating:
+            queryset = queryset.filter(leaderboard_entry__average_rating__gte=float(min_rating))
+        if max_rating:
+            queryset = queryset.filter(leaderboard_entry__average_rating__lte=float(max_rating))
             
         return queryset
     
@@ -70,3 +81,34 @@ class ProjectDetailView(generics.RetrieveAPIView):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+class RatingRangeListView(generics.ListAPIView):
+    serializer_class = RatingRangeSerializer
+    
+    def get_queryset(self):
+        # Define rating ranges
+        ranges = [
+            {'min': 4.5, 'max': 5.0, 'label': '4.5 - 5.0'},
+            {'min': 4.0, 'max': 4.4, 'label': '4.0 - 4.4'},
+            {'min': 3.5, 'max': 3.9, 'label': '3.5 - 3.9'},
+            {'min': 3.0, 'max': 3.4, 'label': '3.0 - 3.4'},
+            {'min': 2.5, 'max': 2.9, 'label': '2.5 - 2.9'},
+            {'min': 2.0, 'max': 2.4, 'label': '2.0 - 2.4'},
+            {'min': 1.0, 'max': 1.9, 'label': '1.0 - 1.9'},
+        ]
+        
+        result = []
+        for range_def in ranges:
+            count = Project.objects.filter(
+                leaderboard_entry__average_rating__gte=range_def['min'],
+                leaderboard_entry__average_rating__lte=range_def['max']
+            ).count()
+            
+            result.append({
+                'range': range_def['label'],
+                'count': count,
+                'min_rating': range_def['min'],
+                'max_rating': range_def['max']
+            })
+        
+        return result

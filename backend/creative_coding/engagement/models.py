@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import User
 from projects.models import Project
 
@@ -43,7 +44,7 @@ class Feedback(models.Model):
     feedback_id = models.AutoField(primary_key=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='feedback')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='given_feedback')
-    rating = models.IntegerField()
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -54,13 +55,7 @@ class Feedback(models.Model):
     def __str__(self):
         return f"Feedback on {self.project.title} by {self.user.full_name if self.user else 'Anonymous'}"
 
-    def clean(self):
-        # Validate rating range
-        if self.rating < 1 or self.rating > 5:
-            raise models.ValidationError({'rating': 'Rating must be between 1 and 5.'})
-
     def save(self, *args, **kwargs):
-        self.clean()
         super().save(*args, **kwargs)
         # Update leaderboard entry after saving feedback
         self._update_leaderboard()
