@@ -32,15 +32,17 @@ class Project(models.Model):
 
 class SDG(models.Model):
     sdg_id = models.AutoField(primary_key=True)
+    sdg_number = models.IntegerField(unique=True)  # Adding SDG number (1-17)
     sdg_name = models.CharField(max_length=255, unique=True)
     # Many-to-many relationship with projects, through ProjectSDG
     projects = models.ManyToManyField(Project, through='ProjectSDG', related_name='sdgs')
 
     class Meta:
         db_table = 'sdgs'
+        ordering = ['sdg_number']  # Order by SDG number
 
     def __str__(self):
-        return self.sdg_name
+        return f"SDG {self.sdg_number}: {self.sdg_name}"
 
 
 class ProjectSDG(models.Model):
