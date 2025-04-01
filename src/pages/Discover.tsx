@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
 import SDGBadge from '../components/SDGBadge';
 import { Filter, Plus, Search, SlidersHorizontal, Trophy } from 'lucide-react';
-import { mockProjects } from '../data/mockData';
-import { ProjectData } from '../components/ProjectCard';
 import { Button } from '../components/ui/button';
 import { useToast } from '../components/ui/use-toast';
+import { useProjects } from '../hooks/use-project';
 
 const categories = [
   'All Categories',
@@ -26,12 +26,12 @@ const sdgNumbers = Array.from({ length: 17 }, (_, i) => i + 1);
 
 const Discover = () => {
   const { toast } = useToast();
+  const { approvedProjects } = useProjects();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedYear, setSelectedYear] = useState('All Years');
   const [selectedSDGs, setSelectedSDGs] = useState<number[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<ProjectData[]>([]);
-  const [allProjects, setAllProjects] = useState<ProjectData[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<typeof approvedProjects>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -39,47 +39,6 @@ const Discover = () => {
     // Check if user is logged in
     const storedUser = localStorage.getItem('user');
     setIsLoggedIn(!!storedUser);
-    
-    // Combine mock projects with any approved projects from localStorage
-    let projects = [...mockProjects];
-    
-    // Mark all mock projects as approved for demonstration
-    projects = projects.map(project => ({
-      ...project,
-      status: 'approved',
-      year: project.year || ['2022', '2023', '2024', '2025'][Math.floor(Math.random() * 4)]
-    }));
-    
-    // Get any approved projects from localStorage (in a real app, this would be an API call)
-    const storedProjects = localStorage.getItem('pendingProjects');
-    if (storedProjects) {
-      const parsedProjects = JSON.parse(storedProjects);
-      // Only add approved projects to the display
-      const approvedProjects = parsedProjects.filter((p: any) => p.status === 'approved');
-      projects = [...projects, ...approvedProjects];
-    }
-    
-    setAllProjects(projects);
-    
-    // Check for user preferences for recommendations
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      if (user.preferences && user.preferences.length > 0) {
-        // Move projects matching user preferences to the beginning
-        const userPrefs = user.preferences;
-        const sortedProjects = [...projects].sort((a, b) => {
-          const aMatchesPref = userPrefs.includes(a.category) ? 1 : 0;
-          const bMatchesPref = userPrefs.includes(b.category) ? 1 : 0;
-          return bMatchesPref - aMatchesPref;
-        });
-        
-        setFilteredProjects(sortedProjects);
-      } else {
-        setFilteredProjects(projects);
-      }
-    } else {
-      setFilteredProjects(projects);
-    }
   }, []);
 
   const toggleSDG = (sdgNumber: number) => {
@@ -91,7 +50,7 @@ const Discover = () => {
   };
 
   useEffect(() => {
-    let result = allProjects;
+    let result = [...approvedProjects];
 
     // Apply search term filter
     if (searchTerm) {
@@ -122,7 +81,7 @@ const Discover = () => {
     }
 
     setFilteredProjects(result);
-  }, [searchTerm, selectedCategory, selectedYear, selectedSDGs, allProjects]);
+  }, [searchTerm, selectedCategory, selectedYear, selectedSDGs, approvedProjects]);
 
   // Check if there are any recommended projects based on user preferences
   const hasRecommendations = isLoggedIn && filteredProjects.length > 0;
