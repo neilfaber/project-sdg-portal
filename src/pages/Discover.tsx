@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
 import SDGBadge from '../components/SDGBadge';
-import { Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { mockProjects } from '../data/mockData';
-import { ProjectData } from '../components/ProjectCard';
+import { Filter, Plus, Search, SlidersHorizontal, Trophy } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { useToast } from '../components/ui/use-toast';
+import { useProjects } from '../hooks/use-project';
 
 const categories = [
   'All Categories',
@@ -21,15 +21,17 @@ const categories = [
   'Data Visualizations'
 ];
 
-const years = ['All Years', '2022', '2023', '2024'];
+const years = ['All Years', '2022', '2023', '2024', '2025'];
 const sdgNumbers = Array.from({ length: 17 }, (_, i) => i + 1);
 
 const Discover = () => {
+  const { toast } = useToast();
+  const { approvedProjects } = useProjects();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedYear, setSelectedYear] = useState('All Years');
   const [selectedSDGs, setSelectedSDGs] = useState<number[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<ProjectData[]>(mockProjects);
+  const [filteredProjects, setFilteredProjects] = useState<typeof approvedProjects>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -37,29 +39,6 @@ const Discover = () => {
     // Check if user is logged in
     const storedUser = localStorage.getItem('user');
     setIsLoggedIn(!!storedUser);
-    
-    // Assign year to mock projects if not already there
-    mockProjects.forEach(project => {
-      if (!project.year) {
-        project.year = ['2022', '2023', '2024'][Math.floor(Math.random() * 3)];
-      }
-    });
-    
-    // Check for user preferences for recommendations
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      if (user.preferences && user.preferences.length > 0) {
-        // Move projects matching user preferences to the beginning
-        const userPrefs = user.preferences;
-        const sortedProjects = [...mockProjects].sort((a, b) => {
-          const aMatchesPref = userPrefs.includes(a.category) ? 1 : 0;
-          const bMatchesPref = userPrefs.includes(b.category) ? 1 : 0;
-          return bMatchesPref - aMatchesPref;
-        });
-        
-        setFilteredProjects(sortedProjects);
-      }
-    }
   }, []);
 
   const toggleSDG = (sdgNumber: number) => {
@@ -71,7 +50,7 @@ const Discover = () => {
   };
 
   useEffect(() => {
-    let result = mockProjects;
+    let result = [...approvedProjects];
 
     // Apply search term filter
     if (searchTerm) {
@@ -102,7 +81,7 @@ const Discover = () => {
     }
 
     setFilteredProjects(result);
-  }, [searchTerm, selectedCategory, selectedYear, selectedSDGs]);
+  }, [searchTerm, selectedCategory, selectedYear, selectedSDGs, approvedProjects]);
 
   // Check if there are any recommended projects based on user preferences
   const hasRecommendations = isLoggedIn && filteredProjects.length > 0;
@@ -118,13 +97,21 @@ const Discover = () => {
             </p>
           </div>
           
-          {isLoggedIn && (
-            <Link to="/create-project">
-              <Button>
-                <Plus size={16} className="mr-2" /> Add Project
+          <div className="flex gap-2">
+            <Link to="/leaderboards">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Trophy size={16} /> Leaderboards
               </Button>
             </Link>
-          )}
+            
+            {isLoggedIn && (
+              <Link to="/create-project">
+                <Button>
+                  <Plus size={16} className="mr-2" /> Add Project
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
