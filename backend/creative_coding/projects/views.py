@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
 from django.db.models import Count, Case, When, Value, BooleanField
 from .models import Project, SDG
@@ -8,8 +8,14 @@ from .serializers import (
     SDGSerializer, 
     CategorySerializer, 
     ProjectDetailSerializer,
-    RatingRangeSerializer
+    RatingRangeSerializer,
+    ProjectSubmissionSerializer,
+    ProjectAdminSerializer
 )
+from rest_framework.decorators import action
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 
 # Create your views here.
 
@@ -17,7 +23,7 @@ class ProjectListView(generics.ListAPIView):
     serializer_class = ProjectListSerializer
     
     def get_queryset(self):
-        queryset = Project.objects.all().prefetch_related('sdgs', 'leaderboard_entry')
+        queryset = Project.objects.filter(status='approved').prefetch_related('sdgs', 'leaderboard_entry')
         
         # Filter by category
         category = self.request.query_params.get('category')
@@ -112,3 +118,39 @@ class RatingRangeListView(generics.ListAPIView):
             })
         
         return result
+
+class ProjectSubmissionView(generics.CreateAPIView):
+    serializer_class = ProjectSubmissionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Automatically associate the project with the user's team
+        serializer.save(team=self.request.user.team)
+
+class AdminProjectViewSet(viewsets.ModelViewSet):
+    queryset = Project.objects.filter(status='pending')
+    serializer_class = ProjectAdminSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        project = self.get_object()
+        project.status = 'approved'
+        project.admin_remarks = request.data.get('remarks', '')
+        project.save()
+        return Response({'status': 'project approved'})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        project = self.get_object()
+        project.status = 'rejected'
+        project.admin_remarks = request.data.get('remarks', '')
+        project.save()
+        return Response({'status': 'project rejected'})
+
+class YourView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Access authenticated user with request.user
+        return Response({"message": f"Hello {request.user.full_name}"})

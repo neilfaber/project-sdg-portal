@@ -1,10 +1,20 @@
-from django.urls import path
-from .views import ProjectListView, CategoryListView, SDGListView, ProjectDetailView, RatingRangeListView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    ProjectListView, CategoryListView, SDGListView,
+    ProjectDetailView, RatingRangeListView,
+    ProjectSubmissionView, AdminProjectViewSet
+)
+
+router = DefaultRouter()
+router.register(r'admin/projects', AdminProjectViewSet)
 
 urlpatterns = [
+    path('', include(router.urls)),
     path('projects/', ProjectListView.as_view(), name='project-list'),
+    path('projects/submit/', ProjectSubmissionView.as_view(), name='project-submit'),
+    path('projects/<int:project_id>/', ProjectDetailView.as_view(), name='project-detail'),
     path('categories/', CategoryListView.as_view(), name='category-list'),
     path('sdgs/', SDGListView.as_view(), name='sdg-list'),
-    path('projects/<int:project_id>/', ProjectDetailView.as_view(), name='project-detail'),
     path('rating-ranges/', RatingRangeListView.as_view(), name='rating-ranges'),
 ] 

@@ -123,4 +123,26 @@ class RatingRangeSerializer(serializers.Serializer):
     range = serializers.CharField()
     count = serializers.IntegerField()
     min_rating = serializers.FloatField()
-    max_rating = serializers.FloatField() 
+    max_rating = serializers.FloatField()
+
+class ProjectSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = [
+            'title', 'description', 'features', 'category',
+            'github_link', 'media_link', 'thumbnail', 'team'
+        ]
+        read_only_fields = ['status', 'admin_remarks']
+
+    def create(self, validated_data):
+        validated_data['status'] = 'pending'
+        return super().create(validated_data)
+
+class ProjectAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = [
+            'project_id', 'title', 'description', 'features',
+            'category', 'github_link', 'media_link', 'thumbnail',
+            'team', 'status', 'admin_remarks', 'created_at'
+        ] 

@@ -12,6 +12,12 @@ class Project(models.Model):
         ('Creative Art', 'Creative Art'),
     ]
 
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
     project_id = models.AutoField(primary_key=True)
     # Use string reference for the model to avoid circular imports
     team = models.ForeignKey('teams.StudentTeam', on_delete=models.CASCADE, related_name='projects')
@@ -22,6 +28,8 @@ class Project(models.Model):
     github_link = models.CharField(max_length=255, blank=True, null=True)
     media_link = models.CharField(max_length=255, blank=True, null=True)
     thumbnail = models.ImageField(upload_to='project_thumbnails/', blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
