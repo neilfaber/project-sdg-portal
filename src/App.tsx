@@ -12,6 +12,8 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Profile from "./pages/Profile";
 import CreateProject from "./pages/CreateProject";
+import AdminPanel from "./pages/AdminPanel";
+import Leaderboards from "./pages/Leaderboards";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,8 @@ const App = () => (
           <Route path="/signup" element={<SignUp />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/create-project" element={<CreateProject />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/leaderboards" element={<Leaderboards />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

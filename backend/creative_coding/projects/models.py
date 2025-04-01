@@ -1,3 +1,4 @@
+
 from django.db import models
 import json
 
@@ -10,6 +11,12 @@ class Project(models.Model):
         ('Video', 'Video'),
         ('Documentary', 'Documentary'),
         ('Creative Art', 'Creative Art'),
+    ]
+    
+    APPROVAL_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
     ]
 
     project_id = models.AutoField(primary_key=True)
@@ -24,6 +31,7 @@ class Project(models.Model):
     thumbnail = models.ImageField(upload_to='project_thumbnails/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='pending')
 
     class Meta:
         db_table = 'projects'
@@ -66,6 +74,3 @@ class ProjectSDG(models.Model):
     
     def __str__(self):
         return f"{self.project.title} - {self.sdg.sdg_name}"
-
-
-

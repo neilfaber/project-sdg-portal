@@ -1,55 +1,85 @@
 
 import React from 'react';
 
-interface SDGBadgeProps {
+export interface SDGBadgeProps {
   sdgNumber: number;
   size?: 'sm' | 'md' | 'lg';
-  showText?: boolean;
+  className?: string;
 }
 
-const SDGBadge: React.FC<SDGBadgeProps> = ({ 
-  sdgNumber, 
-  size = 'md', 
-  showText = false
-}) => {
-  const sdgInfo: Record<number, { color: string; title: string }> = {
-    1: { color: 'bg-red-600', title: 'No Poverty' },
-    2: { color: 'bg-yellow-600', title: 'Zero Hunger' },
-    3: { color: 'bg-green-600', title: 'Good Health and Well-being' },
-    4: { color: 'bg-red-700', title: 'Quality Education' },
-    5: { color: 'bg-orange-600', title: 'Gender Equality' },
-    6: { color: 'bg-blue-500', title: 'Clean Water and Sanitation' },
-    7: { color: 'bg-yellow-500', title: 'Affordable and Clean Energy' },
-    8: { color: 'bg-red-500', title: 'Decent Work and Economic Growth' },
-    9: { color: 'bg-orange-500', title: 'Industry, Innovation, and Infrastructure' },
-    10: { color: 'bg-pink-600', title: 'Reduced Inequality' },
-    11: { color: 'bg-yellow-700', title: 'Sustainable Cities and Communities' },
-    12: { color: 'bg-amber-700', title: 'Responsible Consumption and Production' },
-    13: { color: 'bg-green-700', title: 'Climate Action' },
-    14: { color: 'bg-blue-600', title: 'Life Below Water' },
-    15: { color: 'bg-green-500', title: 'Life on Land' },
-    16: { color: 'bg-blue-700', title: 'Peace, Justice, and Strong Institutions' },
-    17: { color: 'bg-blue-800', title: 'Partnerships for the Goals' }
+const SDGBadge: React.FC<SDGBadgeProps> = ({ sdgNumber, size = 'md', className = '' }) => {
+  const getSDGColor = (num: number): string => {
+    const colors: { [key: number]: string } = {
+      1: '#e5243b', // No Poverty
+      2: '#DDA63A', // Zero Hunger
+      3: '#4C9F38', // Good Health and Well-being
+      4: '#C5192D', // Quality Education
+      5: '#FF3A21', // Gender Equality
+      6: '#26BDE2', // Clean Water and Sanitation
+      7: '#FCC30B', // Affordable and Clean Energy
+      8: '#A21942', // Decent Work and Economic Growth
+      9: '#FD6925', // Industry, Innovation, and Infrastructure
+      10: '#DD1367', // Reduced Inequalities
+      11: '#FD9D24', // Sustainable Cities and Communities
+      12: '#BF8B2E', // Responsible Consumption and Production
+      13: '#3F7E44', // Climate Action
+      14: '#0A97D9', // Life Below Water
+      15: '#56C02B', // Life on Land
+      16: '#00689D', // Peace, Justice and Strong Institutions
+      17: '#19486A', // Partnerships for the Goals
+    };
+    return colors[num] || '#777777';
   };
 
-  const info = sdgInfo[sdgNumber] || { color: 'bg-gray-500', title: 'Unknown SDG' };
-  
-  const sizeClasses = {
+  const getSDGName = (num: number): string => {
+    const names: { [key: number]: string } = {
+      1: 'No Poverty',
+      2: 'Zero Hunger',
+      3: 'Good Health and Well-being',
+      4: 'Quality Education',
+      5: 'Gender Equality',
+      6: 'Clean Water and Sanitation',
+      7: 'Affordable and Clean Energy',
+      8: 'Decent Work and Economic Growth',
+      9: 'Industry, Innovation, and Infrastructure',
+      10: 'Reduced Inequalities',
+      11: 'Sustainable Cities and Communities',
+      12: 'Responsible Consumption and Production',
+      13: 'Climate Action',
+      14: 'Life Below Water',
+      15: 'Life on Land',
+      16: 'Peace, Justice and Strong Institutions',
+      17: 'Partnerships for the Goals',
+    };
+    return names[num] || 'Unknown SDG';
+  };
+
+  const sizeClass = {
     sm: 'h-6 w-6 text-xs',
     md: 'h-8 w-8 text-sm',
-    lg: 'h-10 w-10 text-base'
-  };
+    lg: 'h-10 w-10 text-base',
+  }[size];
+
+  const color = getSDGColor(sdgNumber);
+  const name = getSDGName(sdgNumber);
 
   return (
-    <div className="flex items-center gap-2">
-      <div 
-        className={`${info.color} ${sizeClasses[size]} rounded-full flex items-center justify-center text-white font-semibold`}
+    <div
+      className={`relative group ${className}`}
+      title={`SDG ${sdgNumber}: ${name}`}
+    >
+      <div
+        className={`flex items-center justify-center ${sizeClass} rounded-full font-semibold text-white`}
+        style={{ backgroundColor: color }}
       >
         {sdgNumber}
       </div>
-      {showText && (
-        <span className="text-sm font-medium">{info.title}</span>
-      )}
+      <div className="absolute z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white rounded-md whitespace-nowrap"
+           style={{ backgroundColor: color }}
+      >
+        {name}
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-current" style={{ color: color }}></div>
+      </div>
     </div>
   );
 };

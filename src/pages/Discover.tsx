@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
 import SDGBadge from '../components/SDGBadge';
-import { Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { Filter, Plus, Search, SlidersHorizontal, Trophy } from 'lucide-react';
 import { mockProjects } from '../data/mockData';
 import { ProjectData } from '../components/ProjectCard';
 import { Button } from '../components/ui/button';
@@ -21,7 +21,7 @@ const categories = [
   'Data Visualizations'
 ];
 
-const years = ['All Years', '2022', '2023', '2024'];
+const years = ['All Years', '2022', '2023', '2024', '2025'];
 const sdgNumbers = Array.from({ length: 17 }, (_, i) => i + 1);
 
 const Discover = () => {
@@ -41,7 +41,7 @@ const Discover = () => {
     // Assign year to mock projects if not already there
     mockProjects.forEach(project => {
       if (!project.year) {
-        project.year = ['2022', '2023', '2024'][Math.floor(Math.random() * 3)];
+        project.year = ['2022', '2023', '2024', '2025'][Math.floor(Math.random() * 4)];
       }
     });
     
@@ -118,13 +118,21 @@ const Discover = () => {
             </p>
           </div>
           
-          {isLoggedIn && (
-            <Link to="/create-project">
-              <Button>
-                <Plus size={16} className="mr-2" /> Add Project
+          <div className="flex gap-2">
+            <Link to="/leaderboards">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Trophy size={16} /> Leaderboards
               </Button>
             </Link>
-          )}
+            
+            {isLoggedIn && (
+              <Link to="/create-project">
+                <Button>
+                  <Plus size={16} className="mr-2" /> Add Project
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
