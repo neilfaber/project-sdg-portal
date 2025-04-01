@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -26,7 +25,7 @@ const categories = [
   'Mobile Apps',
   'Data Visualizations'
 ];
-const years = ['2022', '2023', '2024'];
+const years = ['2022', '2023', '2024', '2025'];
 
 const projectSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
@@ -85,13 +84,39 @@ const CreateProject = () => {
   const onSubmit = (data: ProjectFormValues) => {
     setUploading(true);
     
-    // Simulate form submission
+    // In a real application, this would be an API call to submit the project
     setTimeout(() => {
       setUploading(false);
+      
+      // Store the project in localStorage to simulate database storage
+      const storedProjects = localStorage.getItem('pendingProjects');
+      const pendingProjects = storedProjects ? JSON.parse(storedProjects) : [];
+      
+      const newProject = {
+        id: Date.now(),
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        year: data.year,
+        team: {
+          name: data.teamName,
+          members: data.teamMembers.split(',').map(m => m.trim())
+        },
+        githubLink: data.githubLink,
+        sdgs: data.sdgs,
+        image: selectedImage,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      
+      pendingProjects.push(newProject);
+      localStorage.setItem('pendingProjects', JSON.stringify(pendingProjects));
+      
       toast({
-        title: "Project created successfully",
-        description: "Your project has been published and is now visible in the discover page."
+        title: "Project submitted for approval",
+        description: "Your project has been submitted and is awaiting admin approval."
       });
+      
       navigate('/profile');
     }, 2000);
     
@@ -99,6 +124,7 @@ const CreateProject = () => {
     console.log('Selected image:', selectedImage);
   };
 
+  
   return (
     <Layout>
       <div className="page-container py-8">
@@ -107,6 +133,11 @@ const CreateProject = () => {
           <p className="text-muted-foreground">
             Share your creative coding project with the community and align it with SDG goals.
           </p>
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-amber-800 text-sm">
+              <strong>Note:</strong> All new projects require admin approval before appearing on the discover page.
+            </p>
+          </div>
         </div>
         
         <div className="glass-card rounded-xl p-6">
@@ -248,6 +279,8 @@ const CreateProject = () => {
                 )}
               />
               
+              
+              
               {/* Team Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
@@ -352,12 +385,12 @@ const CreateProject = () => {
                   {uploading ? (
                     <>
                       <Upload className="mr-2 h-4 w-4 animate-spin" />
-                      Publishing...
+                      Submitting...
                     </>
                   ) : (
                     <>
                       <Upload className="mr-2 h-4 w-4" />
-                      Publish Project
+                      Submit for Approval
                     </>
                   )}
                 </Button>

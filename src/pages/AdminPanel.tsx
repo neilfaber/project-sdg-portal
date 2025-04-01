@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,42 +7,138 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Check, X, FileText, Users, BarChart3, Shield } from 'lucide-react';
+import { useToast } from "../components/ui/use-toast";
 import { mockProjects } from '../data/mockData';
+import { useNavigate } from 'react-router-dom';
 
-// Mock data for pending projects
-const pendingProjects = mockProjects.slice(0, 3).map(project => ({
-  ...project,
-  status: 'pending'
-}));
+// Define types for our project and user data
+interface Project {
+  id: number;
+  title: string;
+  team: {
+    name: string;
+  };
+  category: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
 
-// Mock data for user management
-const mockUsers = [
-  { id: 1, name: 'John Smith', email: 'john@example.com', role: 'student', status: 'active' },
-  { id: 2, name: 'Emily Johnson', email: 'emily@example.com', role: 'faculty', status: 'active' },
-  { id: 3, name: 'Michael Brown', email: 'michael@example.com', role: 'student', status: 'pending' },
-  { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'student', status: 'inactive' },
-  { id: 5, name: 'David Miller', email: 'david@example.com', role: 'admin', status: 'active' },
-];
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+}
 
-// Mock data for reports
-const mockReports = [
-  { id: 1, name: 'User Activity Report', description: 'Overview of user engagement and activity', date: '2025-03-15' },
-  { id: 2, name: 'Project Submissions Report', description: 'Statistics on project submissions and approvals', date: '2025-03-10' },
-  { id: 3, name: 'Engagement Analytics', description: 'Data on user interactions with projects', date: '2025-03-05' },
-  { id: 4, name: 'SDG Coverage Report', description: 'Analysis of SDG coverage across projects', date: '2025-02-28' },
-];
+interface Report {
+  id: number;
+  name: string;
+  description: string;
+  date: string;
+}
 
 const AdminPanel = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [approvalTab, setApprovalTab] = useState('pending');
+  const [pendingProjects, setPendingProjects] = useState<Project[]>([]);
+  const [approvedProjects, setApprovedProjects] = useState<Project[]>([]);
+  const [rejectedProjects, setRejectedProjects] = useState<Project[]>([]);
+  
+  // Mock data for user management
+  const [users, setUsers] = useState<User[]>([
+    { id: 1, name: 'John Smith', email: 'john@example.com', role: 'student', status: 'active' },
+    { id: 2, name: 'Emily Johnson', email: 'emily@example.com', role: 'faculty', status: 'active' },
+    { id: 3, name: 'Michael Brown', email: 'michael@example.com', role: 'student', status: 'pending' },
+    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'student', status: 'inactive' },
+    { id: 5, name: 'David Miller', email: 'david@example.com', role: 'admin', status: 'active' },
+  ]);
+
+  // Mock data for reports
+  const mockReports: Report[] = [
+    { id: 1, name: 'User Activity Report', description: 'Overview of user engagement and activity', date: '2025-03-15' },
+    { id: 2, name: 'Project Submissions Report', description: 'Statistics on project submissions and approvals', date: '2025-03-10' },
+    { id: 3, name: 'Engagement Analytics', description: 'Data on user interactions with projects', date: '2025-03-05' },
+    { id: 4, name: 'SDG Coverage Report', description: 'Analysis of SDG coverage across projects', date: '2025-02-28' },
+  ];
+  
+  // Initialize project data on component mount
+  useEffect(() => {
+    // In a real application, this would be an API call to fetch project data
+    const formattedProjects = mockProjects.map(project => ({
+      id: project.id,
+      title: project.title,
+      team: project.team,
+      category: project.category,
+      status: Math.random() > 0.7 ? 'approved' : Math.random() > 0.5 ? 'rejected' : 'pending',
+      createdAt: new Date().toISOString().split('T')[0]
+    }));
+    
+    setPendingProjects(formattedProjects.filter(p => p.status === 'pending'));
+    setApprovedProjects(formattedProjects.filter(p => p.status === 'approved'));
+    setRejectedProjects(formattedProjects.filter(p => p.status === 'rejected'));
+  }, []);
   
   const handleApprove = (projectId: number) => {
-    console.log(`Approving project ${projectId}`);
     // In a real implementation, this would make an API call to update the project status
+    const projectToApprove = pendingProjects.find(p => p.id === projectId);
+    
+    if (projectToApprove) {
+      // Update state to move the project from pending to approved
+      setPendingProjects(prev => prev.filter(p => p.id !== projectId));
+      setApprovedProjects(prev => [...prev, { ...projectToApprove, status: 'approved' }]);
+      
+      toast({
+        title: "Project Approved",
+        description: `${projectToApprove.title} has been approved and is now visible on the discover page.`,
+      });
+    }
   };
   
   const handleReject = (projectId: number) => {
-    console.log(`Rejecting project ${projectId}`);
     // In a real implementation, this would make an API call to update the project status
+    const projectToReject = pendingProjects.find(p => p.id === projectId);
+    
+    if (projectToReject) {
+      // Update state to move the project from pending to rejected
+      setPendingProjects(prev => prev.filter(p => p.id !== projectId));
+      setRejectedProjects(prev => [...prev, { ...projectToReject, status: 'rejected' }]);
+      
+      toast({
+        title: "Project Rejected",
+        description: `${projectToReject.title} has been rejected.`,
+      });
+    }
+  };
+
+  const handleUserStatus = (userId: number, newStatus: string) => {
+    // In a real implementation, this would make an API call to update the user status
+    setUsers(prev => 
+      prev.map(user => 
+        user.id === userId ? { ...user, status: newStatus } : user
+      )
+    );
+    
+    toast({
+      title: "User Status Updated",
+      description: `User status has been updated to ${newStatus}.`,
+    });
+  };
+
+  const getProjectsByTab = () => {
+    switch (approvalTab) {
+      case 'approved':
+        return approvedProjects;
+      case 'rejected':
+        return rejectedProjects;
+      default:
+        return pendingProjects;
+    }
+  };
+
+  const navigateToProject = (projectId: number) => {
+    navigate(`/project/${projectId}`);
   };
 
   return (
@@ -89,9 +185,24 @@ const AdminPanel = () => {
               <CardContent>
                 <Tabs value={approvalTab} onValueChange={setApprovalTab}>
                   <TabsList className="mb-4">
-                    <TabsTrigger value="pending">Pending</TabsTrigger>
-                    <TabsTrigger value="approved">Approved</TabsTrigger>
-                    <TabsTrigger value="rejected">Rejected</TabsTrigger>
+                    <TabsTrigger value="pending">
+                      Pending
+                      <Badge variant="outline" className="ml-2">
+                        {pendingProjects.length}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="approved">
+                      Approved
+                      <Badge variant="outline" className="ml-2">
+                        {approvedProjects.length}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="rejected">
+                      Rejected
+                      <Badge variant="outline" className="ml-2">
+                        {rejectedProjects.length}
+                      </Badge>
+                    </TabsTrigger>
                   </TabsList>
                   
                   <Table>
@@ -105,37 +216,54 @@ const AdminPanel = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pendingProjects.length > 0 ? (
-                        pendingProjects.map((project) => (
+                      {getProjectsByTab().length > 0 ? (
+                        getProjectsByTab().map((project) => (
                           <TableRow key={project.id}>
-                            <TableCell className="font-medium">{project.title}</TableCell>
+                            <TableCell 
+                              className="font-medium cursor-pointer hover:text-primary"
+                              onClick={() => navigateToProject(project.id)}
+                            >
+                              {project.title}
+                            </TableCell>
                             <TableCell>{project.team.name}</TableCell>
                             <TableCell>{project.category}</TableCell>
-                            <TableCell>{new Date().toLocaleDateString()}</TableCell>
+                            <TableCell>{project.createdAt}</TableCell>
                             <TableCell className="flex space-x-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="text-green-600 border-green-600 hover:bg-green-50"
-                                onClick={() => handleApprove(project.id)}
-                              >
-                                <Check size={16} className="mr-1" /> Approve
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-red-600 border-red-600 hover:bg-red-50"
-                                onClick={() => handleReject(project.id)}
-                              >
-                                <X size={16} className="mr-1" /> Reject
-                              </Button>
+                              {approvalTab === 'pending' ? (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                    onClick={() => handleApprove(project.id)}
+                                  >
+                                    <Check size={16} className="mr-1" /> Approve
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                    onClick={() => handleReject(project.id)}
+                                  >
+                                    <X size={16} className="mr-1" /> Reject
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigateToProject(project.id)}
+                                >
+                                  View Details
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                            No pending projects to review
+                            No {approvalTab} projects to review
                           </TableCell>
                         </TableRow>
                       )}
@@ -167,7 +295,7 @@ const AdminPanel = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockUsers.map((user) => (
+                    {users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
@@ -187,7 +315,33 @@ const AdminPanel = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="outline">Edit</Button>
+                          {user.status === 'pending' ? (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => handleUserStatus(user.id, 'active')}
+                            >
+                              <Check size={16} className="mr-1" /> Approve
+                            </Button>
+                          ) : user.status === 'active' ? (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              onClick={() => handleUserStatus(user.id, 'inactive')}
+                            >
+                              <X size={16} className="mr-1" /> Deactivate
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleUserStatus(user.id, 'active')}
+                            >
+                              <Check size={16} className="mr-1" /> Reactivate
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -235,19 +389,21 @@ const AdminPanel = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col">
                           <span className="text-muted-foreground text-sm">Total Users</span>
-                          <span className="text-2xl font-bold">125</span>
+                          <span className="text-2xl font-bold">{users.length}</span>
                         </div>
                         <div className="flex flex-col">
                           <span className="text-muted-foreground text-sm">Projects</span>
-                          <span className="text-2xl font-bold">48</span>
+                          <span className="text-2xl font-bold">
+                            {pendingProjects.length + approvedProjects.length + rejectedProjects.length}
+                          </span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-muted-foreground text-sm">SDGs Covered</span>
-                          <span className="text-2xl font-bold">17</span>
+                          <span className="text-muted-foreground text-sm">Approved</span>
+                          <span className="text-2xl font-bold">{approvedProjects.length}</span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-muted-foreground text-sm">Avg. Engagement</span>
-                          <span className="text-2xl font-bold">76%</span>
+                          <span className="text-muted-foreground text-sm">Pending</span>
+                          <span className="text-2xl font-bold">{pendingProjects.length}</span>
                         </div>
                       </div>
                     </CardContent>
