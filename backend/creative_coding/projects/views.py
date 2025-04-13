@@ -17,6 +17,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+class IsAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role == 'admin'
+
 # Create your views here.
 
 class ProjectListView(generics.ListAPIView):
@@ -124,13 +128,13 @@ class ProjectSubmissionView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        # Automatically associate the project with the user's team
-        serializer.save(team=self.request.user.team)
+        # The team is already included in the validated data from the request
+        serializer.save()
 
 class AdminProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.filter(status='pending')
     serializer_class = ProjectAdminSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):

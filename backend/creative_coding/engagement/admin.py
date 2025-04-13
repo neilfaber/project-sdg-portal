@@ -37,7 +37,7 @@ class FeedbackAdmin(admin.ModelAdmin):
 
 @admin.register(Leaderboard)
 class LeaderboardAdmin(admin.ModelAdmin):
-    list_display = ('project', 'average_rating', 'total_ratings', 'views', 'engagement_score')
-    list_filter = ('average_rating', 'views')
+    list_display = ('project', 'average_rating', 'total_ratings')
+    list_filter = ('average_rating',)
     search_fields = ('project__title',)
-    ordering = ('-engagement_score',)
+

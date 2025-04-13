@@ -1,45 +1,34 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
 import SDGBadge from '../components/SDGBadge';
-import { Filter, Plus, Search, SlidersHorizontal, Trophy } from 'lucide-react';
+import { Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useToast } from '../components/ui/use-toast';
-import { useProjects } from '../hooks/use-project';
-
-const categories = [
-  'All Categories',
-  'Games',
-  'Animations',
-  'Web Applications',
-  'Mobile Apps',
-  'Digital Art',
-  'Videos',
-  'Documentaries',
-  'Data Visualizations'
-];
+import { useProjects } from '../hooks/use-projects';
 
 const years = ['All Years', '2022', '2023', '2024', '2025'];
-const sdgNumbers = Array.from({ length: 17 }, (_, i) => i + 1);
 
 const Discover = () => {
   const { toast } = useToast();
-  const { approvedProjects } = useProjects();
+  const { projects, categories, sdgs, loading, error, fetchProjects } = useProjects();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedYear, setSelectedYear] = useState('All Years');
   const [selectedSDGs, setSelectedSDGs] = useState<number[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<typeof approvedProjects>([]);
+  const [filteredProjects, setFilteredProjects] = useState(projects);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem('user');
-    setIsLoggedIn(!!storedUser);
-  }, []);
+    // Apply filters and fetch projects
+    const filters: any = {};
+    if (selectedCategory !== 'All Categories') filters.category = selectedCategory;
+    if (selectedYear !== 'All Years') filters.year = selectedYear;
+    if (selectedSDGs.length > 0) filters.sdg = selectedSDGs[0];
+    
+    fetchProjects(filters);
+  }, [selectedCategory, selectedYear, selectedSDGs]);
 
   const toggleSDG = (sdgNumber: number) => {
     setSelectedSDGs(prev => 
@@ -50,41 +39,43 @@ const Discover = () => {
   };
 
   useEffect(() => {
-    let result = [...approvedProjects];
-
-    // Apply search term filter
+    // Apply search term filter locally
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
-      result = result.filter(project => 
+      const filtered = projects.filter(project => 
         project.title.toLowerCase().includes(lowerSearchTerm) ||
         project.description.toLowerCase().includes(lowerSearchTerm) ||
-        project.team.name.toLowerCase().includes(lowerSearchTerm) ||
-        project.team.members.some(member => member.toLowerCase().includes(lowerSearchTerm))
+        project.team_name.toLowerCase().includes(lowerSearchTerm)
       );
+      setFilteredProjects(filtered);
+    } else {
+      setFilteredProjects(projects);
     }
+  }, [searchTerm, projects]);
 
-    // Apply category filter
-    if (selectedCategory !== 'All Categories') {
-      result = result.filter(project => project.category === selectedCategory);
-    }
-    
-    // Apply year filter
-    if (selectedYear !== 'All Years') {
-      result = result.filter(project => project.year === selectedYear);
-    }
+  if (loading) {
+    return (
+      <Layout>
+        <div className="page-container py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
-    // Apply SDG filter
-    if (selectedSDGs.length > 0) {
-      result = result.filter(project => 
-        selectedSDGs.some(sdg => project.sdgs.includes(sdg))
-      );
-    }
-
-    setFilteredProjects(result);
-  }, [searchTerm, selectedCategory, selectedYear, selectedSDGs, approvedProjects]);
-
-  // Check if there are any recommended projects based on user preferences
-  const hasRecommendations = isLoggedIn && filteredProjects.length > 0;
+  if (error) {
+    return (
+      <Layout>
+        <div className="page-container py-8">
+          <div className="text-center text-red-500">
+            <p>{error}</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -96,22 +87,12 @@ const Discover = () => {
               Explore student coding projects aligned with Sustainable Development Goals.
             </p>
           </div>
-          
-          <div className="flex gap-2">
-            <Link to="/leaderboards">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Trophy size={16} /> Leaderboards
-              </Button>
-            </Link>
-            
-            {isLoggedIn && (
-              <Link to="/create-project">
-                <Button>
-                  <Plus size={16} className="mr-2" /> Add Project
-                </Button>
-              </Link>
-            )}
-          </div>
+          <Link to="/create-project">
+            <Button className="flex items-center gap-2">
+              <Plus size={20} />
+              Create Project
+            </Button>
+          </Link>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
@@ -132,24 +113,37 @@ const Discover = () => {
                 Categories
               </h3>
               <div className="space-y-2">
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="all-categories"
+                    name="category"
+                    checked={selectedCategory === 'All Categories'}
+                    onChange={() => setSelectedCategory('All Categories')}
+                    className="mr-2"
+                  />
+                  <label htmlFor="all-categories" className="text-sm cursor-pointer">
+                    All Categories
+                  </label>
+                </div>
                 {categories.map((category) => (
-                  <div key={category} className="flex items-center">
+                  <div key={category.name} className="flex items-center">
                     <input
                       type="radio"
-                      id={category}
+                      id={category.name}
                       name="category"
-                      checked={selectedCategory === category}
-                      onChange={() => setSelectedCategory(category)}
+                      checked={selectedCategory === category.name}
+                      onChange={() => setSelectedCategory(category.name)}
                       className="mr-2"
                     />
-                    <label htmlFor={category} className="text-sm cursor-pointer">
-                      {category}
+                    <label htmlFor={category.name} className="text-sm cursor-pointer">
+                      {category.name} ({category.count})
                     </label>
                   </div>
                 ))}
               </div>
             </div>
-            
+
             <div className="glass-card rounded-xl p-4">
               <h3 className="font-medium flex items-center gap-2 mb-3">
                 <Filter size={18} />
@@ -177,17 +171,16 @@ const Discover = () => {
             <div className="glass-card rounded-xl p-4">
               <h3 className="font-medium mb-3">SDG Goals</h3>
               <div className="flex flex-wrap gap-2">
-                {sdgNumbers.map((sdg) => (
+                {sdgs.map((sdg) => (
                   <button
-                    key={sdg}
-                    onClick={() => toggleSDG(sdg)}
-                    className={`h-8 w-8 rounded-full text-xs font-medium transition-colors ${
-                      selectedSDGs.includes(sdg) 
-                        ? 'bg-primary text-white ring-2 ring-primary' 
-                        : 'bg-secondary text-foreground hover:bg-secondary/80'
-                    }`}
+                    key={sdg.sdg_id}
+                    onClick={() => toggleSDG(sdg.sdg_number)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                      ${selectedSDGs.includes(sdg.sdg_number) 
+                        ? 'bg-primary text-white' 
+                        : 'bg-muted hover:bg-muted/80'}`}
                   >
-                    {sdg}
+                    {sdg.sdg_number}
                   </button>
                 ))}
               </div>
@@ -223,25 +216,11 @@ const Discover = () => {
               {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'} found
             </p>
 
-            {/* Recommended Section */}
-            {hasRecommendations && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Recommended for You</h2>
-                <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 mb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="animate-fade-in">
-                      <ProjectCard project={filteredProjects[0]} isRecommended={true} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Projects Grid */}
             {filteredProjects.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProjects.slice(hasRecommendations ? 1 : 0).map((project) => (
-                  <div key={project.id} className="animate-fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                {filteredProjects.map((project) => (
+                  <div key={project.project_id} className="animate-fade-in">
                     <ProjectCard project={project} />
                   </div>
                 ))}
