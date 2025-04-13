@@ -51,76 +51,80 @@ const SDG_COLORS: { [key: number]: string } = {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, isRecommended = false }) => {
   return (
-    <div className="glass-card rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
-      {/* Thumbnail */}
-      <div className="relative h-48">
-        {project.thumbnail_url ? (
-          <img
-            src={project.thumbnail_url}
-            alt={project.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <span className="text-muted-foreground">No thumbnail</span>
-          </div>
-        )}
-        {/* SDG Badges */}
-        <div className="absolute top-2 right-2 flex gap-1">
-          {project.sdgs.map((sdg) => (
-            <div
-              key={sdg.sdg_id}
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white
-                ${SDG_COLORS[sdg.sdg_number] || 'bg-primary'}`}
-              title={`SDG ${sdg.sdg_number}: ${sdg.sdg_name}`}
-            >
-              {sdg.sdg_number}
+    <Link to={`/project/${project.project_id}`} className="block">
+      <div className="glass-card rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
+        {/* Thumbnail */}
+        <div className="relative h-48">
+          {project.thumbnail_url ? (
+            <img
+              src={project.thumbnail_url}
+              alt={project.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <span className="text-muted-foreground">No thumbnail</span>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 line-clamp-2">{project.title}</h3>
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{project.description}</p>
-        
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-medium">{project.team_name}</span>
-          <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm">{project.average_rating.toFixed(1)}</span>
-            <span className="text-sm text-muted-foreground">({project.total_ratings})</span>
+          )}
+          {/* SDG Badges */}
+          <div className="absolute top-2 right-2 flex gap-1">
+            {project.sdgs.map((sdg) => (
+              <div
+                key={sdg.sdg_id}
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white
+                  ${SDG_COLORS[sdg.sdg_number] || 'bg-primary'}`}
+                title={`SDG ${sdg.sdg_number}: ${sdg.sdg_name}`}
+              >
+                {sdg.sdg_number}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{project.category}</span>
-          <div className="flex gap-2">
-            {project.github_link && (
-              <a
-                href={project.github_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary"
-              >
-                <Github className="w-4 h-4" />
-              </a>
-            )}
-            {project.media_link && (
-              <a
-                href={project.media_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
+        {/* Content */}
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-2 line-clamp-2">{project.title}</h3>
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{project.description}</p>
+          
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium">{project.team_name}</span>
+            <div className="flex items-center gap-1">
+              <Star className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm">{project.average_rating.toFixed(1)}</span>
+              <span className="text-sm text-muted-foreground">({project.total_ratings})</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">{project.category}</span>
+            <div className="flex gap-2">
+              {project.github_link && (
+                <a
+                  href={project.github_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+              )}
+              {project.media_link && (
+                <a
+                  href={project.media_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

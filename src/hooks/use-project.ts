@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { mockProjects } from '../data/mockData';
 import { ProjectData } from '../components/ProjectCard';
+import axios from 'axios';
 
 // Define return type for useProjects hook
 interface UseProjectsReturn {
@@ -14,8 +14,29 @@ interface UseProjectsReturn {
   refreshProjects: () => void;
 }
 
+interface Project {
+  project_id: string;
+  title: string;
+  description: string;
+  category: string;
+  team_name: string;
+  sdgs: {
+    sdg_id: number;
+    sdg_number: number;
+    sdg_name: string;
+  }[];
+  status: string;
+  github_link: string | null;
+  media_link: string | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  average_rating: number;
+  total_ratings: number;
+  features: string[];
+}
+
 interface UseProjectReturn {
-  project: ProjectData | null;
+  project: Project | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -119,47 +140,31 @@ export const useProjects = (): UseProjectsReturn => {
 /**
  * Hook to get a single project by ID
  */
-export const useProject = (projectId: number | string): UseProjectReturn => {
-  const [project, setProject] = useState<ProjectData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export const useProject = (projectId: string): UseProjectReturn => {
+  const [project, setProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   useEffect(() => {
-    setIsLoading(true);
-    
-    // Convert projectId to number if it's a string
-    const id = typeof projectId === 'string' ? parseInt(projectId) : projectId;
-    
-    // Look in mock projects first
-    let foundProject = mockProjects.find(p => p.id === id);
-    
-    // If not found, check localStorage
-    if (!foundProject) {
-      const storedProjects = localStorage.getItem('pendingProjects');
-      if (storedProjects) {
-        try {
-          const parsedProjects = JSON.parse(storedProjects);
-          foundProject = parsedProjects.find((p: ProjectData) => p.id === id);
-        } catch (error) {
-          console.error('Error parsing stored projects:', error);
-          setError('Error loading project data');
-        }
+    const fetchProject = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`http://127.0.0.1:8000/api/projects/projects/${projectId}/`);
+        setProject(response.data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to fetch project details');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
       }
+    };
+
+    if (projectId) {
+      fetchProject();
     }
-    
-    if (foundProject) {
-      // Ensure project has a status
-      if (!foundProject.status) {
-        foundProject.status = 'approved';
-      }
-      setProject(foundProject);
-    } else {
-      setError('Project not found');
-    }
-    
-    setIsLoading(false);
   }, [projectId]);
-  
+
   return { project, isLoading, error };
 };
 

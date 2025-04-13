@@ -1,13 +1,32 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { ArrowLeft, ExternalLink, Github, Clock, Calendar, Users } from 'lucide-react';
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import SDGBadge from '../components/SDGBadge';
-import useProject from '../hooks/use-project';
+import { useProject } from '../hooks/use-project';
 import { useToast } from "../components/ui/use-toast";
+
+// SDG color mapping
+const SDG_COLORS: { [key: number]: string } = {
+  1: 'bg-red-500',
+  2: 'bg-orange-500',
+  3: 'bg-yellow-500',
+  4: 'bg-green-500',
+  5: 'bg-teal-500',
+  6: 'bg-blue-500',
+  7: 'bg-indigo-500',
+  8: 'bg-purple-500',
+  9: 'bg-pink-500',
+  10: 'bg-rose-500',
+  11: 'bg-amber-500',
+  12: 'bg-lime-500',
+  13: 'bg-emerald-500',
+  14: 'bg-cyan-500',
+  15: 'bg-sky-500',
+  16: 'bg-violet-500',
+  17: 'bg-fuchsia-500',
+};
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -95,27 +114,28 @@ const ProjectDetail = () => {
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <Badge variant="secondary">{project.category}</Badge>
-            {project.year && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Calendar size={14} /> {project.year}
-              </Badge>
-            )}
           </div>
           <h1 className="text-4xl font-bold">{project.title}</h1>
           
           {/* SDG Goals */}
           <div className="flex flex-wrap gap-2 mt-4">
-            {project.sdgs.map((sdgNumber) => (
-              <SDGBadge key={sdgNumber} sdgNumber={sdgNumber} showText={false} />
+            {project.sdgs.map((sdg) => (
+              <div
+                key={sdg.sdg_id}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white ${SDG_COLORS[sdg.sdg_number]}`}
+                title={`SDG ${sdg.sdg_number}: ${sdg.sdg_name}`}
+              >
+                {sdg.sdg_number}
+              </div>
             ))}
           </div>
         </div>
         
         {/* Project Image */}
-        {project.image && (
+        {project.thumbnail_url && (
           <div className="mb-8 cursor-pointer" onClick={() => setIsImageExpanded(!isImageExpanded)}>
             <img 
-              src={project.image} 
+              src={project.thumbnail_url} 
               alt={project.title} 
               className={`rounded-lg shadow-md w-full object-cover transition-all ${isImageExpanded ? 'h-auto' : 'max-h-80'}`}
             />
@@ -132,24 +152,7 @@ const ProjectDetail = () => {
                 <p>{project.description}</p>
               </div>
             </div>
-            
-            {/* GitHub Link */}
-            {project.githubLink && (
-              <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-bold mb-4 flex items-center">
-                  <Github size={20} className="mr-2" /> GitHub Repository
-                </h2>
-                <a 
-                  href={project.githubLink}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center text-primary hover:underline"
-                >
-                  {project.githubLink} <ExternalLink size={14} className="ml-1" />
-                </a>
-              </div>
-            )}
-            
+
             {/* Features */}
             {project.features && project.features.length > 0 && (
               <div className="glass-card rounded-xl p-6">
@@ -162,11 +165,28 @@ const ProjectDetail = () => {
               </div>
             )}
             
+            {/* GitHub Link */}
+            {project.github_link && (
+              <div className="glass-card rounded-xl p-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center">
+                  <Github size={20} className="mr-2" /> GitHub Repository
+                </h2>
+                <a 
+                  href={project.github_link}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center text-primary hover:underline"
+                >
+                  {project.github_link} <ExternalLink size={14} className="ml-1" />
+                </a>
+              </div>
+            )}
+            
             {/* External Link */}
-            {project.githubLink && (
+            {project.github_link && (
               <div className="flex justify-center mt-8">
                 <a 
-                  href={project.githubLink}
+                  href={project.github_link}
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center"
@@ -180,10 +200,10 @@ const ProjectDetail = () => {
             )}
             
             {/* Demo Link */}
-            {project.mediaLink && (
+            {project.media_link && (
               <div className="flex justify-center mt-4">
                 <a 
-                  href={project.mediaLink}
+                  href={project.media_link}
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center"
@@ -204,16 +224,7 @@ const ProjectDetail = () => {
               <h2 className="text-xl font-bold mb-4 flex items-center">
                 <Users size={20} className="mr-2" /> Team Information
               </h2>
-              <p className="font-medium text-lg">{project.team.name}</p>
-              
-              <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Team Members</h3>
-                <ul className="space-y-1">
-                  {project.team.members.map((member, i) => (
-                    <li key={i} className="text-sm">{member}</li>
-                  ))}
-                </ul>
-              </div>
+              <p className="font-medium text-lg">{project.team_name}</p>
             </div>
             
             {/* Project Metadata */}
@@ -226,22 +237,13 @@ const ProjectDetail = () => {
                   <p>{project.category}</p>
                 </div>
                 
-                {project.year && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Year</h3>
-                    <p>{project.year}</p>
-                  </div>
-                )}
-                
-                {project.createdAt && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Submitted On</h3>
-                    <p className="flex items-center">
-                      <Clock size={14} className="mr-1" /> 
-                      {new Date(project.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Submitted On</h3>
+                  <p className="flex items-center">
+                    <Clock size={14} className="mr-1" /> 
+                    {new Date(project.created_at).toLocaleDateString()}
+                  </p>
+                </div>
                 
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Status</h3>
@@ -249,8 +251,16 @@ const ProjectDetail = () => {
                     project.status === 'approved' ? 'default' : 
                     project.status === 'pending' ? 'secondary' : 'destructive'
                   }>
-                    {project.status || 'Approved'}
+                    {project.status}
                   </Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Rating</h3>
+                  <p className="flex items-center">
+                    <span className="text-yellow-500 mr-1">★</span>
+                    {project.average_rating.toFixed(1)} ({project.total_ratings} ratings)
+                  </p>
                 </div>
               </div>
             </div>

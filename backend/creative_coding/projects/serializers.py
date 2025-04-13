@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Project, SDG, ProjectSDG
-from teams.models import StudentTeam
+from teams.models import StudentTeam, TeamMember
 from teams.serializers import TeamMemberSerializer  # Import from teams app
 from users.models import User
 from engagement.models import Leaderboard, Feedback
