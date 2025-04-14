@@ -1,42 +1,59 @@
-
 import { ProjectData } from '../components/ProjectCard';
 
 export const mockProjects: ProjectData[] = [
   {
-    id: '1',
+    project_id: 1,
     title: 'Ocean Cleanup Simulator',
     description: 'An interactive game that simulates ocean cleanup efforts and teaches about marine conservation. Players can collect plastic waste, protect marine life, and learn about the impact of pollution on ecosystems.',
-    imageUrl: 'https://images.unsplash.com/photo-1621451537084-482c73073a0f?q=80&w=1000',
-    sdgs: [14, 13, 4],
-    team: {
-      name: 'Blue Planet',
-      members: ['Alex Johnson', 'Maria Garcia', 'Raj Patel']
-    },
-    category: 'Games'
+    team_name: 'Blue Planet',
+    category: 'Games',
+    sdgs: [
+      { sdg_id: 1, sdg_number: 14, sdg_name: 'Life Below Water' },
+      { sdg_id: 2, sdg_number: 13, sdg_name: 'Climate Action' },
+      { sdg_id: 3, sdg_number: 4, sdg_name: 'Quality Education' }
+    ],
+    thumbnail_url: 'https://images.unsplash.com/photo-1621451537084-482c73073a0f?q=80&w=1000',
+    created_at: new Date().toISOString(),
+    average_rating: 4.5,
+    total_ratings: 25,
+    github_link: 'https://github.com/example/ocean-cleanup',
+    status: 'approved'
   },
   {
-    id: '2',
+    project_id: 2,
     title: 'Sustainable City Builder',
     description: 'A city simulation game where players design and build environmentally sustainable urban areas. The game teaches about renewable energy, public transportation, and urban planning.',
-    imageUrl: 'https://images.unsplash.com/photo-1518005068251-37900150dfca?q=80&w=1000',
-    sdgs: [11, 7, 9],
-    team: {
-      name: 'Urban Planners',
-      members: ['Emma Wilson', 'Liu Wei', 'Ahmed Hassan']
-    },
-    category: 'Games'
+    team_name: 'Urban Planners',
+    category: 'Games',
+    sdgs: [
+      { sdg_id: 4, sdg_number: 11, sdg_name: 'Sustainable Cities and Communities' },
+      { sdg_id: 5, sdg_number: 7, sdg_name: 'Affordable and Clean Energy' },
+      { sdg_id: 6, sdg_number: 9, sdg_name: 'Industry, Innovation and Infrastructure' }
+    ],
+    thumbnail_url: 'https://images.unsplash.com/photo-1518005068251-37900150dfca?q=80&w=1000',
+    created_at: new Date().toISOString(),
+    average_rating: 4.8,
+    total_ratings: 32,
+    github_link: 'https://github.com/example/sustainable-city',
+    status: 'approved'
   },
   {
-    id: '3',
+    project_id: 3,
     title: 'Climate Change Visualization',
     description: 'An interactive data visualization that shows the effects of climate change over time. Users can explore temperature changes, sea level rise, and greenhouse gas emissions data.',
-    imageUrl: 'https://images.unsplash.com/photo-1564038057722-50a4362e9a7b?q=80&w=1000',
-    sdgs: [13, 15, 17],
-    team: {
-      name: 'Data Visualizers',
-      members: ['Sophie Brown', 'Carlos Mendez', 'Aisha Osei']
-    },
-    category: 'Data Visualizations'
+    team_name: 'Data Visualizers',
+    category: 'Web Applications',
+    sdgs: [
+      { sdg_id: 7, sdg_number: 13, sdg_name: 'Climate Action' },
+      { sdg_id: 8, sdg_number: 15, sdg_name: 'Life on Land' },
+      { sdg_id: 9, sdg_number: 17, sdg_name: 'Partnerships for the Goals' }
+    ],
+    thumbnail_url: 'https://images.unsplash.com/photo-1564038057722-50a4362e9a7b?q=80&w=1000',
+    created_at: new Date().toISOString(),
+    average_rating: 4.7,
+    total_ratings: 18,
+    github_link: 'https://github.com/example/climate-viz',
+    status: 'approved'
   },
   {
     id: '4',

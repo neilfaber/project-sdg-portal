@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -7,35 +6,78 @@ import { Input } from '../components/ui/input';
 import { Checkbox } from '../components/ui/checkbox';
 import { GithubIcon, UserPlus } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const SignUp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [formData, setFormData] = React.useState({
-    name: '',
+    full_name: '',
     email: '',
     password: '',
+    password2: '',
+    username: '',
+    role: '',
     agreeTerms: false
   });
 
+  // Function to generate username from full name
+  const generateUsername = (fullName: string): string => {
+    return fullName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '') // Remove special characters and spaces
+      .slice(0, 30); // Limit username length
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+      // Generate username from full name if full_name field is being updated
+      ...(name === 'full_name' && { username: generateUsername(value) })
+    }));
+  };
+
+  const handleRoleChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      role: value
+    }));
   };
 
   const handleCheckboxChange = (checked: boolean) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       agreeTerms: checked
-    });
+    }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.role) {
+      toast({
+        title: "Role required",
+        description: "Please select your role to continue",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.password !== formData.password2) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords match",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!formData.agreeTerms) {
       toast({
         title: "Please agree to terms",
@@ -46,24 +88,44 @@ const SignUp = () => {
     }
     
     setIsLoading(true);
-    
-    // Simulate registration - would be replaced with actual auth
-    setTimeout(() => {
-      localStorage.setItem('user', JSON.stringify({
-        id: 'user-' + Date.now(),
-        name: formData.name,
+
+    try {
+      // Send signup request to backend
+      const response = await axios.post(`${API_BASE_URL}/users/signup/`, {
         email: formData.email,
-        avatar: 'https://i.pravatar.cc/150?u=' + formData.email,
-        preferences: ['Web Applications', 'Games']
-      }));
-      
-      setIsLoading(false);
-      toast({
-        title: "Account created",
-        description: "Welcome to LearnHub! Your account has been created successfully."
+        password: formData.password,
+        password2: formData.password2,
+        full_name: formData.full_name,
+        username: formData.username,
+        role: formData.role
       });
-      navigate('/profile');
-    }, 1500);
+
+      if (response.data) {
+        // Store the tokens in localStorage
+        localStorage.setItem('accessToken', response.data.access);
+        localStorage.setItem('refreshToken', response.data.refresh);
+        
+        toast({
+          title: "Account created",
+          description: "Welcome to LearnHub! Your account has been created successfully."
+        });
+        
+        navigate('/profile');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      const errorMessage = error.response?.data?.message || 
+                         error.response?.data?.password?.[0] ||
+                         error.response?.data?.email?.[0] ||
+                         "An error occurred during signup. Please try again.";
+      toast({
+        title: "Signup failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -77,14 +139,14 @@ const SignUp = () => {
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">Full Name</label>
+              <label htmlFor="full_name" className="text-sm font-medium">Full Name</label>
               <Input
-                id="name"
-                name="name"
+                id="full_name"
+                name="full_name"
                 type="text"
                 placeholder="John Doe"
                 required
-                value={formData.name}
+                value={formData.full_name}
                 onChange={handleChange}
               />
             </div>
@@ -101,6 +163,29 @@ const SignUp = () => {
                 onChange={handleChange}
               />
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="role" className="text-sm font-medium">Role</label>
+              <Select
+                value={formData.role}
+                onValueChange={handleRoleChange}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="faculty">Teacher</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="management">Management</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Choose how you want to participate in the platform
+              </p>
+            </div>
             
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">Password</label>
@@ -116,6 +201,19 @@ const SignUp = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 Must be at least 8 characters
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password2" className="text-sm font-medium">Confirm Password</label>
+              <Input
+                id="password2"
+                name="password2"
+                type="password"
+                placeholder="Confirm your password"
+                required
+                value={formData.password2}
+                onChange={handleChange}
+              />
             </div>
             
             <div className="flex items-center space-x-2">

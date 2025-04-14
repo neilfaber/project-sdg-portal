@@ -34,36 +34,6 @@ const ProjectDetail = () => {
   const { toast } = useToast();
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
-  // Function to get styling based on project approval status
-  const getStatusStyle = () => {
-    if (!project) return {};
-    
-    switch(project.status) {
-      case 'approved':
-        return {
-          bgColor: 'bg-green-100',
-          textColor: 'text-green-800',
-          borderColor: 'border-green-200',
-          message: 'This project has been approved by administrators.'
-        };
-      case 'rejected':
-        return {
-          bgColor: 'bg-red-100',
-          textColor: 'text-red-800',
-          borderColor: 'border-red-200',
-          message: 'This project has been rejected by administrators.'
-        };
-      case 'pending':
-      default:
-        return {
-          bgColor: 'bg-yellow-100',
-          textColor: 'text-yellow-800',
-          borderColor: 'border-yellow-200',
-          message: 'This project is pending administrator approval.'
-        };
-    }
-  };
-
   if (isLoading) {
     return (
       <Layout>
@@ -92,9 +62,6 @@ const ProjectDetail = () => {
     );
   }
 
-  // Get status styling
-  const statusStyle = getStatusStyle();
-
   return (
     <Layout>
       <div className="page-container py-8">
@@ -102,13 +69,6 @@ const ProjectDetail = () => {
         <Link to="/discover" className="inline-flex items-center text-sm font-medium text-primary hover:underline mb-4">
           <ArrowLeft size={16} className="mr-1" /> Back to Discover
         </Link>
-        
-        {/* Project Status Banner (if pending or rejected) */}
-        {project.status && project.status !== 'approved' && (
-          <div className={`mb-6 p-4 rounded-lg ${statusStyle.bgColor} ${statusStyle.textColor} border ${statusStyle.borderColor}`}>
-            <p>{statusStyle.message}</p>
-          </div>
-        )}
         
         {/* Project Title and Category */}
         <div className="mb-6">
@@ -165,26 +125,9 @@ const ProjectDetail = () => {
               </div>
             )}
             
-            {/* GitHub Link */}
-            {project.github_link && (
-              <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-bold mb-4 flex items-center">
-                  <Github size={20} className="mr-2" /> GitHub Repository
-                </h2>
-                <a 
-                  href={project.github_link}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center text-primary hover:underline"
-                >
-                  {project.github_link} <ExternalLink size={14} className="ml-1" />
-                </a>
-              </div>
-            )}
-            
-            {/* External Link */}
-            {project.github_link && (
-              <div className="flex justify-center mt-8">
+            {/* Project Links */}
+            <div className="flex justify-center items-center gap-4">
+              {project.github_link && (
                 <a 
                   href={project.github_link}
                   target="_blank" 
@@ -196,12 +139,9 @@ const ProjectDetail = () => {
                     View on GitHub
                   </Button>
                 </a>
-              </div>
-            )}
-            
-            {/* Demo Link */}
-            {project.media_link && (
-              <div className="flex justify-center mt-4">
+              )}
+              
+              {project.media_link && (
                 <a 
                   href={project.media_link}
                   target="_blank" 
@@ -213,8 +153,8 @@ const ProjectDetail = () => {
                     View Live Demo
                   </Button>
                 </a>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           {/* Sidebar - Team and Stats */}
@@ -243,16 +183,6 @@ const ProjectDetail = () => {
                     <Clock size={14} className="mr-1" /> 
                     {new Date(project.created_at).toLocaleDateString()}
                   </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                  <Badge variant={
-                    project.status === 'approved' ? 'default' : 
-                    project.status === 'pending' ? 'secondary' : 'destructive'
-                  }>
-                    {project.status}
-                  </Badge>
                 </div>
 
                 <div>

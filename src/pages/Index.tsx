@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowRight, BookOpen, Code, Globe, PlayCircle, PuzzleIcon, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -262,19 +261,19 @@ const Index = () => {
 
 // Helper function for category descriptions
 function getCategoryDescription(category: string): string {
-  switch(category) {
+  switch (category) {
     case 'Games':
-      return 'Interactive educational games that teach players about sustainability concepts while providing an engaging experience.';
+      return 'Interactive games that educate and raise awareness about sustainable development goals.';
     case 'Animations':
-      return 'Animated stories and simulations that visualize complex environmental and social challenges in accessible ways.';
+      return 'Creative animations that visualize and explain sustainability concepts.';
     case 'Web Applications':
-      return 'Interactive web platforms that provide tools, resources, and information related to sustainable development.';
+      return 'Web-based solutions that help track, measure, and promote sustainable practices.';
     case 'Videos':
-      return 'Documentaries and short films that highlight sustainability issues and showcase innovative solutions.';
+      return 'Educational and promotional videos highlighting sustainability initiatives.';
     case 'Digital Art':
-      return 'Creative visual expressions that communicate SDG themes through digital media and artwork.';
+      return 'Digital artwork that inspires and communicates sustainable development messages.';
     default:
-      return 'Innovative student projects that contribute to sustainable development goals.';
+      return 'Explore creative projects that contribute to sustainable development goals.';
   }
 }
 

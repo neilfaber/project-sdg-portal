@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -6,6 +5,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { GithubIcon, LogIn } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -23,27 +25,45 @@ const SignIn = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate authentication - would be replaced with actual auth
-    setTimeout(() => {
-      localStorage.setItem('user', JSON.stringify({
-        id: 'user-123',
-        name: 'Demo User',
+
+    try {
+      // Send login request to backend
+      const response = await axios.post(`${API_BASE_URL}/users/login/`, {
         email: formData.email,
-        avatar: 'https://i.pravatar.cc/150?u=user-123',
-        preferences: ['Web Applications', 'Games']
-      }));
-      
-      setIsLoading(false);
-      toast({
-        title: "Signed in successfully",
-        description: "Welcome back to LearnHub!"
+        password: formData.password
       });
-      navigate('/profile');
-    }, 1500);
+
+      if (response.data) {
+        // Store tokens and user data
+        const { access, refresh, user } = response.data;
+        localStorage.setItem('accessToken', access);
+        localStorage.setItem('refreshToken', refresh);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        toast({
+          title: "Signed in successfully",
+          description: `Welcome back, ${user.full_name}!`
+        });
+        
+        navigate('/profile');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.detail ||
+                         error.response?.data?.message ||
+                         "Invalid email or password. Please try again.";
+      
+      toast({
+        title: "Login failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

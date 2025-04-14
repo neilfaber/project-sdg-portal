@@ -1,4 +1,3 @@
-
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import path
@@ -6,14 +5,24 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from .models import Project, SDG, ProjectSDG
 
-# Register your models here.
+@admin.register(SDG)
+class SDGAdmin(admin.ModelAdmin):
+    list_display = ('sdg_number', 'sdg_name')
+    search_fields = ('sdg_name',)
+    ordering = ('sdg_number',)
+
+class ProjectSDGInline(admin.TabularInline):
+    model = ProjectSDG
+    extra = 1
+
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('title', 'team', 'category', 'approval_status', 'created_at', 'approval_actions')
-    list_filter = ('category', 'approval_status', 'created_at')
+    list_filter = ('category', 'approval_status', 'created_at', 'sdgs')
     search_fields = ('title', 'description')
     date_hierarchy = 'created_at'
     actions = ['approve_projects', 'reject_projects']
+    inlines = [ProjectSDGInline]
     
     def approval_actions(self, obj):
         if obj.approval_status == 'pending':
@@ -69,12 +78,8 @@ class ProjectAdmin(admin.ModelAdmin):
         self.message_user(request, f"Project '{project.title}' has been rejected.")
         return HttpResponseRedirect(reverse('admin:projects_project_changelist'))
 
-@admin.register(SDG)
-class SDGAdmin(admin.ModelAdmin):
-    list_display = ('sdg_name',)
-    search_fields = ('sdg_name',)
-
 @admin.register(ProjectSDG)
 class ProjectSDGAdmin(admin.ModelAdmin):
     list_display = ('project', 'sdg')
     list_filter = ('sdg',)
+    search_fields = ('project__title', 'sdg__sdg_name')

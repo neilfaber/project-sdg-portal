@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { GithubIcon, LogIn, Menu, UserCircle, X } from 'lucide-react';
@@ -305,25 +304,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
 // Helper function for category descriptions in Navigation
 function getCategoryShortDescription(category: string): string {
-  switch(category) {
+  switch (category) {
     case 'Games':
-      return 'Interactive educational games about sustainability.';
+      return 'Interactive educational games focused on sustainability';
     case 'Animations':
-      return 'Animated stories visualizing environmental challenges.';
+      return 'Animated content explaining environmental concepts';
     case 'Web Applications':
-      return 'Web platforms providing tools and resources for SDGs.';
+      return 'Web-based tools for sustainable development';
     case 'Mobile Apps':
-      return 'Mobile solutions for sustainable development.';
+      return 'Mobile applications promoting sustainability';
     case 'Digital Art':
-      return 'Creative expressions communicating SDG themes.';
+      return 'Digital artwork with environmental themes';
     case 'Videos':
-      return 'Documentaries highlighting sustainability issues.';
+      return 'Educational videos about sustainability';
     case 'Documentaries':
-      return 'In-depth explorations of SDG-related topics.';
+      return 'In-depth explorations of environmental issues';
     case 'Data Visualizations':
-      return 'Visual representations of sustainability data.';
+      return 'Visual representations of environmental data';
     default:
-      return 'Student projects contributing to SDGs.';
+      return 'Projects promoting sustainable development';
   }
 }
 

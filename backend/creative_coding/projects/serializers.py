@@ -12,7 +12,7 @@ class SDGSerializer(serializers.ModelSerializer):
 
 class ProjectListSerializer(serializers.ModelSerializer):
     team_name = serializers.CharField(source='team.team_name', read_only=True)
-    sdgs = SDGSerializer(many=True, read_only=True)
+    sdgs = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     total_ratings = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
@@ -22,6 +22,9 @@ class ProjectListSerializer(serializers.ModelSerializer):
         fields = ['project_id', 'title', 'description', 'category', 
                  'github_link', 'media_link', 'thumbnail_url', 'created_at', 
                  'team_name', 'sdgs', 'average_rating', 'total_ratings']
+    
+    def get_sdgs(self, obj):
+        return obj.get_sdgs()
     
     def get_average_rating(self, obj):
         try:
@@ -46,7 +49,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
 class ProjectDetailSerializer(serializers.ModelSerializer):
     team_name = serializers.CharField(source='team.team_name')
     team_members = serializers.SerializerMethodField()
-    sdgs = SDGSerializer(many=True, read_only=True)
+    sdgs = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     total_ratings = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
@@ -78,6 +81,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     def get_team_members(self, obj):
         team_members = TeamMember.objects.filter(team=obj.team).select_related('user')
         return TeamMemberSerializer(team_members, many=True).data
+    
+    def get_sdgs(self, obj):
+        return obj.get_sdgs()
     
     def get_average_rating(self, obj):
         try:
@@ -126,17 +132,35 @@ class RatingRangeSerializer(serializers.Serializer):
     max_rating = serializers.FloatField()
 
 class ProjectSubmissionSerializer(serializers.ModelSerializer):
+    sdgs = serializers.ListField(
+        child=serializers.IntegerField(min_value=1, max_value=17),
+        required=False,
+        write_only=True
+    )
+
     class Meta:
         model = Project
         fields = [
             'title', 'description', 'features', 'category',
-            'github_link', 'media_link', 'thumbnail', 'team'
+            'github_link', 'media_link', 'thumbnail', 'team', 'sdgs'
         ]
         read_only_fields = ['status', 'admin_remarks']
 
     def create(self, validated_data):
+        sdgs = validated_data.pop('sdgs', [])
         validated_data['status'] = 'pending'
-        return super().create(validated_data)
+        project = super().create(validated_data)
+        project.set_sdgs(sdgs)
+        project.save()
+        return project
+
+    def update(self, instance, validated_data):
+        sdgs = validated_data.pop('sdgs', None)
+        project = super().update(instance, validated_data)
+        if sdgs is not None:
+            project.set_sdgs(sdgs)
+            project.save()
+        return project
 
 class ProjectAdminSerializer(serializers.ModelSerializer):
     class Meta:

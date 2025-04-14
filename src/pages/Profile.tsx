@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -6,15 +5,18 @@ import ProjectCard, { ProjectData } from '../components/ProjectCard';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Edit2, LogOut, Plus, Settings, User } from 'lucide-react';
-import { mockProjects } from '../data/mockData';
 import { useToast } from '../components/ui/use-toast';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api';
 
 interface UserData {
-  id: string;
-  name: string;
+  id: number;
   email: string;
-  avatar: string;
-  preferences: string[];
+  username: string;
+  full_name: string;
+  role: string;
+  created_at: string;
 }
 
 const Profile = () => {
@@ -26,26 +28,61 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/signin');
-      return;
-    }
+    const fetchUserProfile = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        navigate('/signin');
+        return;
+      }
 
-    setUser(JSON.parse(storedUser));
-    
-    // Simulate loading user projects
-    setTimeout(() => {
-      // For demo, we'll assume the first 2 projects are user's projects
-      setUserProjects(mockProjects.slice(0, 2));
-      // And next 3 projects are saved/liked by user
-      setSavedProjects(mockProjects.slice(2, 5));
-      setIsLoading(false);
-    }, 1000);
-  }, [navigate]);
+      try {
+        // Fetch user profile
+        const response = await axios.get(`${API_BASE_URL}/users/profile/`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        setUser(response.data);
+        
+        // TODO: Implement these endpoints in backend
+        // Fetch user's projects
+        // const projectsResponse = await axios.get(`${API_BASE_URL}/projects/user/`, {
+        //   headers: {
+        //     'Authorization': `Bearer ${accessToken}`
+        //   }
+        // });
+        // setUserProjects(projectsResponse.data);
+
+        // // Fetch saved projects
+        // const savedResponse = await axios.get(`${API_BASE_URL}/projects/saved/`, {
+        //   headers: {
+        //     'Authorization': `Bearer ${accessToken}`
+        //   }
+        // });
+        // setSavedProjects(savedResponse.data);
+
+        setIsLoading(false);
+      } catch (error: any) {
+        console.error('Profile loading error:', error);
+        const errorMessage = error.response?.data?.message || "Failed to load profile";
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        if (error.response?.status === 401) {
+          navigate('/signin');
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [navigate, toast]);
 
   const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     toast({
       title: "Logged out",
@@ -74,8 +111,8 @@ const Profile = () => {
           <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
             <div className="relative">
               <img 
-                src={user?.avatar} 
-                alt={user?.name} 
+                src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.full_name}`}
+                alt={user?.full_name} 
                 className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-md"
               />
               <button className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-full">
@@ -84,15 +121,13 @@ const Profile = () => {
             </div>
             
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl font-bold mb-2">{user?.name}</h1>
+              <h1 className="text-3xl font-bold mb-2">{user?.full_name}</h1>
               <p className="text-muted-foreground mb-4">{user?.email}</p>
               
               <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-4">
-                {user?.preferences.map(pref => (
-                  <span key={pref} className="px-3 py-1 bg-secondary rounded-full text-xs font-medium">
-                    {pref}
-                  </span>
-                ))}
+                <span className="px-3 py-1 bg-secondary rounded-full text-xs font-medium">
+                  {user?.role}
+                </span>
               </div>
               
               <div className="flex flex-wrap gap-3 justify-center md:justify-start">
@@ -127,7 +162,7 @@ const Profile = () => {
             {userProjects.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userProjects.map((project) => (
-                  <div key={project.id} className="animate-fade-in">
+                  <div key={project.project_id} className="animate-fade-in">
                     <ProjectCard project={project} />
                   </div>
                 ))}
@@ -156,7 +191,7 @@ const Profile = () => {
             {savedProjects.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {savedProjects.map((project) => (
-                  <div key={project.id} className="animate-fade-in">
+                  <div key={project.project_id} className="animate-fade-in">
                     <ProjectCard project={project} />
                   </div>
                 ))}
