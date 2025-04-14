@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Layout from '../components/Layout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -14,24 +15,24 @@ import { ImagePlus, Upload } from 'lucide-react';
 import SDGBadge from '../components/SDGBadge';
 import { useToast } from '../components/ui/use-toast';
 
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
 const sdgNumbers = Array.from({ length: 17 }, (_, i) => i + 1);
 const categories = [
-  'Web Applications',
   'Games',
   'Animations',
+  'Web Applications',
+  'Mobile Apps',
+  'Digital Art',
   'Videos',
   'Documentaries',
-  'Digital Art',
-  'Mobile Apps',
   'Data Visualizations'
 ];
-const years = ['2022', '2023', '2024', '2025'];
 
 const projectSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(20, 'Description must be at least 20 characters'),
   category: z.string().min(1, 'Please select a category'),
-  year: z.string().min(1, 'Please select a year'),
   teamName: z.string().min(3, 'Team name must be at least 3 characters'),
   teamMembers: z.string().min(3, 'Please add at least one team member'),
   githubLink: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
@@ -53,7 +54,6 @@ const CreateProject = () => {
       title: '',
       description: '',
       category: '',
-      year: '2024',
       teamName: '',
       teamMembers: '',
       githubLink: '',
@@ -81,47 +81,120 @@ const CreateProject = () => {
     }
   };
 
-  const onSubmit = (data: ProjectFormValues) => {
+  const onSubmit = async (data: ProjectFormValues) => {
     setUploading(true);
     
-    // In a real application, this would be an API call to submit the project
-    setTimeout(() => {
-      setUploading(false);
+    try {
+      // Get the access token from localStorage
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to submit a project.",
+          variant: "destructive"
+        });
+        navigate('/signin');
+        return;
+      }
+
+      // First, create a team with the correct URL
+      const teamResponse = await axios.post(`${API_BASE_URL}/teams/teams/`, {
+        team_name: data.teamName
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('Team created:', teamResponse.data);
+      const teamId = teamResponse.data.team_id;
+
+      // Team members require user IDs, which is beyond scope for this demo
+      // This would typically be handled by backend logic
       
-      // Store the project in localStorage to simulate database storage
-      const storedProjects = localStorage.getItem('pendingProjects');
-      const pendingProjects = storedProjects ? JSON.parse(storedProjects) : [];
+      // Create form data for project submission
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      formData.append('category', data.category);
+      formData.append('github_link', data.githubLink || '');
+      formData.append('team', teamId.toString());
       
-      const newProject = {
-        id: Date.now(),
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        year: data.year,
-        team: {
-          name: data.teamName,
-          members: data.teamMembers.split(',').map(m => m.trim())
-        },
-        githubLink: data.githubLink,
-        sdgs: data.sdgs,
-        image: selectedImage,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-      
-      pendingProjects.push(newProject);
-      localStorage.setItem('pendingProjects', JSON.stringify(pendingProjects));
-      
+      // Fix SDG format - backend expects a simple array of numbers
+      // Don't use JSON.stringify directly on form data
+      for (const sdg of data.sdgs) {
+        formData.append('sdgs', sdg.toString());
+      }
+
+      // Add the thumbnail if it exists
+      if (selectedImage) {
+        // Convert base64 to blob
+        const base64Response = await fetch(selectedImage);
+        const blob = await base64Response.blob();
+        formData.append('thumbnail', blob, 'thumbnail.jpg');
+      }
+
+      // Log form data for debugging
+      console.log('Form data keys:', [...formData.entries()].map(entry => `${entry[0]}: ${entry[1]}`));
+
+      // Submit the project with the right endpoint
+      const projectResponse = await axios.post(`${API_BASE_URL}/projects/projects/submit/`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      console.log('Project submitted successfully:', projectResponse.data);
+
       toast({
-        title: "Project submitted for approval",
+        title: "Success!",
         description: "Your project has been submitted and is awaiting admin approval."
       });
       
       navigate('/profile');
-    }, 2000);
-    
-    console.log('Form data:', data);
-    console.log('Selected image:', selectedImage);
+    } catch (error: any) {
+      console.error('Error submitting project:', error);
+      
+      // Show detailed error information
+      if (error.response) {
+        console.error('Error response:', {
+          data: error.response.data,
+          status: error.response.status,
+          headers: error.response.headers
+        });
+        
+        // Format error message for toast
+        let errorMessage = "Failed to submit project. Please try again.";
+        
+        if (error.response.data) {
+          if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          } else if (error.response.data.detail) {
+            errorMessage = error.response.data.detail;
+          } else if (typeof error.response.data === 'object') {
+            // Format object errors
+            errorMessage = Object.entries(error.response.data)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(', ');
+          }
+        }
+        
+        toast({
+          title: `Error (${error.response.status})`,
+          description: errorMessage,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to submit project. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setUploading(false);
+    }
   };
 
   
@@ -202,63 +275,33 @@ const CreateProject = () => {
                   )}
                 />
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories.map(category => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="year"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Year</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select year" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {years.map(year => (
-                              <SelectItem key={year} value={year}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map(category => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               
               <FormField
@@ -278,8 +321,6 @@ const CreateProject = () => {
                   </FormItem>
                 )}
               />
-              
-              
               
               {/* Team Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -304,10 +345,10 @@ const CreateProject = () => {
                     <FormItem>
                       <FormLabel>Team Members</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., John Doe, Jane Smith" {...field} />
+                        <Input placeholder="e.g., john@example.com, jane@example.com" {...field} />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        Separate member names with commas
+                        Separate member emails with commas
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

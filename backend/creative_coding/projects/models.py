@@ -28,12 +28,14 @@ class ProjectSDG(models.Model):
 # Create your models here.
 class Project(models.Model):
     CATEGORY_CHOICES = [
-        ('Animation', 'Animation'),
-        ('Game', 'Game'),
-        ('Web Development', 'Web Development'),
-        ('Video', 'Video'),
-        ('Documentary', 'Documentary'),
-        ('Creative Art', 'Creative Art'),
+        ('Games', 'Games'),
+        ('Animations', 'Animations'),
+        ('Web Applications', 'Web Applications'),
+        ('Mobile Apps', 'Mobile Apps'),
+        ('Digital Art', 'Digital Art'),
+        ('Videos', 'Videos'),
+        ('Documentaries', 'Documentaries'),
+        ('Data Visualizations', 'Data Visualizations'),
     ]
     
     APPROVAL_STATUS_CHOICES = [
