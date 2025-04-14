@@ -1,8 +1,13 @@
-from django.urls import path
-from .views import SignupView, CustomTokenObtainPairView, UserProfileView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import SignupView, CustomTokenObtainPairView, UserProfileView, AdminUserViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
 
+router = DefaultRouter()
+router.register(r'admin/users', AdminUserViewSet)
+
 urlpatterns = [
+    path('', include(router.urls)),
     path('signup/', SignupView.as_view(), name='signup'),
     path('login/', CustomTokenObtainPairView.as_view(), name='login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

@@ -21,7 +21,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
         model = Project
         fields = ['project_id', 'title', 'description', 'category', 
                  'github_link', 'media_link', 'thumbnail_url', 'created_at', 
-                 'team_name', 'sdgs', 'average_rating', 'total_ratings']
+                 'team_name', 'sdgs', 'average_rating', 'total_ratings', 'status']
     
     def get_sdgs(self, obj):
         return obj.get_sdgs()

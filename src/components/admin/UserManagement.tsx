@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Check, X } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -6,38 +5,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-}
+import { useUsers } from '@/hooks/use-users';
 
 const UserManagement = () => {
   const { toast } = useToast();
-  const [users, setUsers] = React.useState<User[]>([
-    { id: 1, name: 'John Smith', email: 'john@example.com', role: 'student', status: 'active' },
-    { id: 2, name: 'Emily Johnson', email: 'emily@example.com', role: 'faculty', status: 'active' },
-    { id: 3, name: 'Michael Brown', email: 'michael@example.com', role: 'student', status: 'pending' },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'student', status: 'inactive' },
-    { id: 5, name: 'David Miller', email: 'david@example.com', role: 'admin', status: 'active' },
-  ]);
+  const { users, isLoading, error, updateUserStatus } = useUsers();
 
-  const handleUserStatus = (userId: number, newStatus: string) => {
-    // In a real implementation, this would make an API call to update the user status
-    setUsers(prev => 
-      prev.map(user => 
-        user.id === userId ? { ...user, status: newStatus } : user
-      )
-    );
-    
-    toast({
-      title: "User Status Updated",
-      description: `User status has been updated to ${newStatus}.`,
-    });
+  const handleUserStatus = async (userId: number, newStatus: string) => {
+    try {
+      await updateUserStatus(userId, newStatus);
+      
+      toast({
+        title: "User Status Updated",
+        description: `User status has been updated to ${newStatus}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user status. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>User Management</CardTitle>
+          <CardDescription>
+            View and manage user accounts and permissions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-pulse text-lg">Loading users...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>User Management</CardTitle>
+          <CardDescription>
+            View and manage user accounts and permissions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="py-8 text-center text-red-600">
+            <p>Error loading users: {error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -61,7 +89,7 @@ const UserManagement = () => {
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell className="font-medium">{user.full_name}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'faculty' ? 'outline' : 'secondary'}>

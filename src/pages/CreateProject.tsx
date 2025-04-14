@@ -36,6 +36,7 @@ const projectSchema = z.object({
   teamName: z.string().min(3, 'Team name must be at least 3 characters'),
   teamMembers: z.string().min(3, 'Please add at least one team member'),
   githubLink: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  mediaLink: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   sdgs: z.array(z.number()).min(1, 'Please select at least one SDG goal')
 });
 
@@ -57,6 +58,7 @@ const CreateProject = () => {
       teamName: '',
       teamMembers: '',
       githubLink: '',
+      mediaLink: '',
       sdgs: []
     }
   });
@@ -119,6 +121,7 @@ const CreateProject = () => {
       formData.append('description', data.description);
       formData.append('category', data.category);
       formData.append('github_link', data.githubLink || '');
+      formData.append('media_link', data.mediaLink || '');
       formData.append('team', teamId.toString());
       
       // Fix SDG format - backend expects a simple array of numbers
@@ -365,6 +368,23 @@ const CreateProject = () => {
                     <FormControl>
                       <Input placeholder="https://github.com/username/repository" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="mediaLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Media Link (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://youtube.com/watch?v=example or other media URL" {...field} />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Add a link to a video demo, presentation, or other media showcasing your project
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

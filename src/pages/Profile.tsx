@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Edit2, LogOut, Plus, Settings, User } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
 import axios from 'axios';
+import { Badge } from '../components/ui/badge';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 interface UserData {
   id: number;
@@ -19,11 +20,16 @@ interface UserData {
   created_at: string;
 }
 
+// Extended ProjectData interface to include status
+interface UserProjectData extends ProjectData {
+  status: 'pending' | 'approved' | 'rejected';
+}
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<UserData | null>(null);
-  const [userProjects, setUserProjects] = useState<ProjectData[]>([]);
+  const [userProjects, setUserProjects] = useState<UserProjectData[]>([]);
   const [savedProjects, setSavedProjects] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,16 +51,15 @@ const Profile = () => {
 
         setUser(response.data);
         
-        // TODO: Implement these endpoints in backend
-        // Fetch user's projects
-        // const projectsResponse = await axios.get(`${API_BASE_URL}/projects/user/`, {
-        //   headers: {
-        //     'Authorization': `Bearer ${accessToken}`
-        //   }
-        // });
-        // setUserProjects(projectsResponse.data);
+        // Fetch user's projects (including pending ones)
+        const projectsResponse = await axios.get(`${API_BASE_URL}/projects/user-projects/`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        setUserProjects(projectsResponse.data);
 
-        // // Fetch saved projects
+        // Fetch saved projects
         // const savedResponse = await axios.get(`${API_BASE_URL}/projects/saved/`, {
         //   headers: {
         //     'Authorization': `Bearer ${accessToken}`
@@ -74,6 +79,7 @@ const Profile = () => {
         if (error.response?.status === 401) {
           navigate('/signin');
         }
+        setIsLoading(false);
       }
     };
 
@@ -89,6 +95,19 @@ const Profile = () => {
       description: "You have been successfully logged out."
     });
     navigate('/');
+  };
+
+  // Function to render status badge
+  const renderStatusBadge = (status: string) => {
+    switch(status) {
+      case 'approved':
+        return <Badge className="bg-green-500">Approved</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-500">Rejected</Badge>;
+      case 'pending':
+      default:
+        return <Badge className="bg-yellow-500">Pending Approval</Badge>;
+    }
   };
 
   if (isLoading) {
@@ -162,7 +181,10 @@ const Profile = () => {
             {userProjects.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userProjects.map((project) => (
-                  <div key={project.project_id} className="animate-fade-in">
+                  <div key={project.project_id} className="animate-fade-in relative">
+                    <div className="absolute top-3 right-3 z-10">
+                      {renderStatusBadge(project.status)}
+                    </div>
                     <ProjectCard project={project} />
                   </div>
                 ))}

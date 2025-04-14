@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
-from django.db.models import Count, Case, When, Value, BooleanField
+from django.db.models import Count, Case, When, Value, BooleanField, Q
 from .models import Project, SDG
 from .serializers import (
     ProjectListSerializer, 
@@ -16,6 +16,7 @@ from rest_framework.decorators import action
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from teams.models import TeamMember
 
 class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -158,3 +159,39 @@ class YourView(APIView):
     def get(self, request):
         # Access authenticated user with request.user
         return Response({"message": f"Hello {request.user.full_name}"})
+
+class UserProjectsView(generics.ListAPIView):
+    """View to return all projects associated with the current user, including pending ones."""
+    serializer_class = ProjectListSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Get teams that the user is a member of
+        user_teams = TeamMember.objects.filter(user=user).values_list('team_id', flat=True)
+        
+        # Get all projects from those teams, regardless of status
+        queryset = Project.objects.filter(team_id__in=user_teams).prefetch_related('sdgs', 'leaderboard_entry')
+        
+        return queryset
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+class RejectedProjectsView(generics.ListAPIView):
+    """View to return all rejected projects for admin review."""
+    serializer_class = ProjectAdminSerializer
+    permission_classes = [IsAdmin]
+    
+    def get_queryset(self):
+        # Get all projects with rejected status
+        queryset = Project.objects.filter(status='rejected').prefetch_related('sdgs', 'team')
+        return queryset
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context

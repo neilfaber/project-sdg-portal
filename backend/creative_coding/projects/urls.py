@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ProjectListView, CategoryListView, SDGListView,
     ProjectDetailView, RatingRangeListView,
-    ProjectSubmissionView, AdminProjectViewSet
+    ProjectSubmissionView, AdminProjectViewSet,
+    UserProjectsView, RejectedProjectsView
 )
 
 router = DefaultRouter()
@@ -17,4 +18,6 @@ urlpatterns = [
     path('categories/', CategoryListView.as_view(), name='category-list'),
     path('sdgs/', SDGListView.as_view(), name='sdg-list'),
     path('rating-ranges/', RatingRangeListView.as_view(), name='rating-ranges'),
+    path('user-projects/', UserProjectsView.as_view(), name='user-projects'),
+    path('admin/rejected/', RejectedProjectsView.as_view(), name='rejected-projects'),
 ] 

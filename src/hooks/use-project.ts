@@ -3,6 +3,8 @@ import { mockProjects } from '../data/mockData';
 import { ProjectData } from '../components/ProjectCard';
 import axios from 'axios';
 
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
 // Define return type for useProjects hook
 interface UseProjectsReturn {
   allProjects: ProjectData[];
@@ -51,32 +53,78 @@ export const useProjects = (): UseProjectsReturn => {
   const [rejectedProjects, setRejectedProjects] = useState<ProjectData[]>([]);
   
   // Function to load and categorize projects
-  const refreshProjects = () => {
-    // Start with mock projects (in a real app, this would be an API call)
-    let projects = [...mockProjects].map(project => ({
-      ...project,
-      status: project.status || 'approved',  // Mark mockProjects as approved by default
-      year: project.year || '2024'
-    }));
-    
-    // Get user-submitted projects from localStorage
-    const storedProjects = localStorage.getItem('pendingProjects');
-    if (storedProjects) {
-      try {
-        const parsedProjects = JSON.parse(storedProjects);
-        projects = [...projects, ...parsedProjects];
-      } catch (error) {
-        console.error('Error parsing stored projects:', error);
-      }
+  const refreshProjects = async () => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      console.error("No access token found");
+      return;
     }
-    
-    // Set all projects
-    setAllProjects(projects);
-    
-    // Categorize projects by status
-    setPendingProjects(projects.filter(p => p.status === 'pending'));
-    setApprovedProjects(projects.filter(p => p.status === 'approved'));
-    setRejectedProjects(projects.filter(p => p.status === 'rejected'));
+
+    try {
+      // Fetch all projects that need admin approval (pending ones)
+      const pendingResponse = await axios.get(`${API_BASE_URL}/projects/admin/projects/`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      // Fetch approved projects
+      const approvedResponse = await axios.get(`${API_BASE_URL}/projects/projects/`, {
+        params: { status: 'approved' },
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      // Fetch rejected projects
+      const rejectedResponse = await axios.get(`${API_BASE_URL}/projects/admin/rejected/`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      // Transform the data to match the expected format
+      const transformProject = (project: any): ProjectData => ({
+        id: parseInt(project.project_id),
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        team: {
+          id: project.team,
+          name: project.team_name
+        },
+        thumbnail: project.thumbnail_url,
+        sdgs: project.sdgs,
+        createdAt: new Date(project.created_at).toLocaleDateString(),
+        status: project.status,
+        rating: project.average_rating || 0,
+        year: new Date(project.created_at).getFullYear().toString()
+      });
+
+      // Set the projects
+      const pendingData = pendingResponse.data.map(transformProject);
+      const approvedData = approvedResponse.data.map(transformProject);
+      const rejectedData = rejectedResponse.data.map(transformProject);
+      
+      setPendingProjects(pendingData);
+      setApprovedProjects(approvedData);
+      setRejectedProjects(rejectedData);
+      setAllProjects([...pendingData, ...approvedData, ...rejectedData]);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      
+      // Fallback to mock data if API fails
+      let projects = [...mockProjects].map(project => ({
+        ...project,
+        status: project.status || 'approved',
+        year: project.year || '2024'
+      }));
+      
+      setAllProjects(projects);
+      setPendingProjects(projects.filter(p => p.status === 'pending'));
+      setApprovedProjects(projects.filter(p => p.status === 'approved'));
+      setRejectedProjects(projects.filter(p => p.status === 'rejected'));
+    }
   };
   
   // Initialize projects on first render
@@ -85,44 +133,76 @@ export const useProjects = (): UseProjectsReturn => {
   }, []);
   
   // Function to approve a project
-  const approveProject = (projectId: number) => {
-    // Find the project
-    const projectToApprove = allProjects.find(p => p.id === projectId);
-    
-    if (projectToApprove) {
-      // Update project status in the array
+  const approveProject = async (projectId: number) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      console.error("No access token found");
+      return;
+    }
+
+    try {
+      // Call the API to approve the project
+      await axios.post(`${API_BASE_URL}/projects/admin/projects/${projectId}/approve/`, 
+        { remarks: "Approved by admin" },
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Refresh the projects to reflect the updated status
+      refreshProjects();
+    } catch (error) {
+      console.error('Error approving project:', error);
+      
+      // Fallback to local state update if API fails
       const updatedProjects = allProjects.map(p => 
         p.id === projectId ? { ...p, status: 'approved' } : p
       );
       
-      // Save to localStorage
-      localStorage.setItem('pendingProjects', JSON.stringify(
-        updatedProjects.filter(p => !mockProjects.some(mp => mp.id === p.id))
-      ));
-      
-      // Refresh all project lists
-      refreshProjects();
+      setAllProjects(updatedProjects);
+      setPendingProjects(updatedProjects.filter(p => p.status === 'pending'));
+      setApprovedProjects(updatedProjects.filter(p => p.status === 'approved'));
+      setRejectedProjects(updatedProjects.filter(p => p.status === 'rejected'));
     }
   };
   
   // Function to reject a project
-  const rejectProject = (projectId: number) => {
-    // Find the project
-    const projectToReject = allProjects.find(p => p.id === projectId);
-    
-    if (projectToReject) {
-      // Update project status in the array
+  const rejectProject = async (projectId: number) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      console.error("No access token found");
+      return;
+    }
+
+    try {
+      // Call the API to reject the project
+      await axios.post(`${API_BASE_URL}/projects/admin/projects/${projectId}/reject/`, 
+        { remarks: "Rejected by admin" },
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Refresh the projects to reflect the updated status
+      refreshProjects();
+    } catch (error) {
+      console.error('Error rejecting project:', error);
+      
+      // Fallback to local state update if API fails
       const updatedProjects = allProjects.map(p => 
         p.id === projectId ? { ...p, status: 'rejected' } : p
       );
       
-      // Save to localStorage
-      localStorage.setItem('pendingProjects', JSON.stringify(
-        updatedProjects.filter(p => !mockProjects.some(mp => mp.id === p.id))
-      ));
-      
-      // Refresh all project lists
-      refreshProjects();
+      setAllProjects(updatedProjects);
+      setPendingProjects(updatedProjects.filter(p => p.status === 'pending'));
+      setApprovedProjects(updatedProjects.filter(p => p.status === 'approved'));
+      setRejectedProjects(updatedProjects.filter(p => p.status === 'rejected'));
     }
   };
   

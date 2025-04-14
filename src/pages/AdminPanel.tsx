@@ -1,5 +1,6 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Layout from '../components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Users, BarChart3, Shield } from 'lucide-react';
@@ -7,8 +8,80 @@ import ProjectApprovalQueue from '../components/admin/ProjectApprovalQueue';
 import UserManagement from '../components/admin/UserManagement';
 import ReportsAnalytics from '../components/admin/ReportsAnalytics';
 import ContentModeration from '../components/admin/ContentModeration';
+import { useToast } from '@/components/ui/use-toast';
+
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 const AdminPanel = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to access the admin panel.",
+          variant: "destructive"
+        });
+        navigate('/signin');
+        return;
+      }
+
+      try {
+        // Fetch user profile to check role
+        const response = await axios.get(`${API_BASE_URL}/users/profile/`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.data.role !== 'admin') {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access the admin panel.",
+            variant: "destructive"
+          });
+          navigate('/');
+          return;
+        }
+
+        setIsAdmin(true);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        toast({
+          title: "Error",
+          description: "Failed to verify admin privileges. Please try again.",
+          variant: "destructive"
+        });
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [navigate, toast]);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="page-container py-16">
+          <div className="flex justify-center items-center min-h-[50vh]">
+            <div className="animate-pulse text-xl">Verifying admin privileges...</div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAdmin) {
+    return null; // This should never render as the user will be redirected
+  }
+
   return (
     <Layout>
       <div className="page-container py-8">
