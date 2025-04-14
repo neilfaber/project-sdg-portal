@@ -104,15 +104,23 @@ const SignUp = () => {
         // Store the tokens in localStorage
         localStorage.setItem('accessToken', response.data.access);
         localStorage.setItem('refreshToken', response.data.refresh);
-        
+      
         toast({
           title: "Account created",
           description: "Welcome to LearnHub! Your account has been created successfully."
         });
-        
-        navigate('/profile');
+      
+        // Redirect based on role
+        if (formData.role === 'faculty') {
+          navigate('/teachers'); // Redirect to Teachers page
+        } else if (formData.role === 'management') {
+          navigate('/management'); // Redirect to Management page
+        } else {
+          navigate('/profile'); // Default redirect
+        }
       }
-    } catch (error: any) {
+      }
+      catch (error: any) {
       console.error('Signup error:', error);
       const errorMessage = error.response?.data?.message || 
                          error.response?.data?.password?.[0] ||

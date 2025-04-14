@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Discover from "./pages/Discover";
 import ProjectDetail from "./pages/ProjectDetail";
+import Teachers from './pages/Teachers'
 import NotFound from "./pages/NotFound";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/create-project" element={<CreateProject />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/leaderboards" element={<Leaderboards />} />
+          <Route path="/teachers" element={<Teachers/>}/>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
