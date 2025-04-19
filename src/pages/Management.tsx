@@ -1,337 +1,217 @@
-import React, { useState } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Tabs,
-  Tab,
-  Button,
-  Card,
-  CardContent,
-  CardActions,
-  List,
-  ListItem,
-  ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Layout from '../components/Layout';
+import { useToast } from '../components/ui/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { BarChart, PieChart, Activity, Users, FileText } from 'lucide-react';
+import { Button } from '../components/ui/button';
 
-import {
-  Assessment,
-  TrendingUp,
-  Business,
-  Description,
-  Group,
-} from '@mui/icons-material';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+const Management = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isManagement, setIsManagement] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
+  useEffect(() => {
+    const checkManagementStatus = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to access the management dashboard.",
+          variant: "destructive"
+        });
+        navigate('/signin');
+        return;
+      }
+
+      try {
+        // Fetch user profile to check role
+        const response = await axios.get(`${API_BASE_URL}/users/profile/`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.data.role !== 'management') {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access the management dashboard.",
+            variant: "destructive"
+          });
+          navigate('/');
+          return;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+        setIsManagement(true);
+      } catch (error) {
+        console.error('Error checking management status:', error);
+        toast({
+          title: "Error",
+          description: "Failed to verify management privileges. Please try again.",
+          variant: "destructive"
+        });
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkManagementStatus();
+  }, [navigate, toast]);
+
+  if (isLoading) {
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      <Layout>
+        <div className="page-container py-16">
+          <div className="flex justify-center items-center min-h-[50vh]">
+            <div className="animate-pulse text-xl">Verifying management privileges...</div>
+          </div>
     </div>
+      </Layout>
   );
 }
 
-const Management: React.FC = () => {
-  const [tabValue, setTabValue] = useState(0);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
-  // Mock data for charts
-  const performanceData = [
-    { name: 'Jan', participation: 65, quality: 75 },
-    { name: 'Feb', participation: 70, quality: 80 },
-    { name: 'Mar', participation: 75, quality: 85 },
-    { name: 'Apr', participation: 80, quality: 90 },
-  ];
-
-  const sdgData = [
-    { name: 'SDG 6', projects: 15 },
-    { name: 'SDG 7', projects: 20 },
-    { name: 'SDG 13', projects: 25 },
-    { name: 'SDG 15', projects: 10 },
-  ];
+  if (!isManagement) {
+    return null; // This should never render as the user will be redirected
+  }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Management Dashboard
-      </Typography>
-
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab icon={<Assessment />} label="Institutional Performance" />
-          <Tab icon={<TrendingUp />} label="SDG Contribution" />
-          <Tab icon={<Group />} label="Project Impact" />
-          <Tab icon={<Business />} label="Industry Engagement" />
-          <Tab icon={<Description />} label="Reports" />
-        </Tabs>
-      </Box>
-
-      <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Participation Rates
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="participation" fill="#8884d8" />
-                  <Bar dataKey="quality" fill="#82ca9d" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Key Metrics
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Total Projects"
-                    secondary="150"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Active Students"
-                    secondary="450"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Average Project Score"
-                    secondary="85%"
-                  />
-                </ListItem>
-              </List>
-            </Paper>
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={1}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                SDG Distribution
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={sdgData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="projects" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Project Impact Analysis
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Environmental Impact"
-                    secondary="Reduced carbon footprint by 25%"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Social Impact"
-                    secondary="Engaged with 5 local communities"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Educational Impact"
-                    secondary="85% of students reported improved skills"
-                  />
-                </ListItem>
-              </List>
-            </Paper>
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={3}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Industry Partners
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Tech Solutions Inc."
-                    secondary="Partnering on 3 projects"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Green Energy Corp"
-                    secondary="Mentoring 2 student teams"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Local NGO"
-                    secondary="Community engagement partner"
-                  />
-                </ListItem>
-              </List>
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ mt: 2 }}
-              >
-                Add New Partner
-              </Button>
-            </Paper>
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={4}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Report Generation
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6">Performance Report</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Detailed analysis of institutional performance
-                      </Typography>
-                    </CardContent>
-                    <CardActions>
-                      <Button size="small" onClick={() => setReportDialogOpen(true)}>
-                        Generate
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6">SDG Impact Report</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Analysis of SDG contributions
-                      </Typography>
-                    </CardContent>
-                    <CardActions>
-                      <Button size="small" onClick={() => setReportDialogOpen(true)}>
-                        Generate
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6">Project Summary</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Overview of all projects
-                      </Typography>
-                    </CardContent>
-                    <CardActions>
-                      <Button size="small" onClick={() => setReportDialogOpen(true)}>
-                        Generate
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      <Dialog open={reportDialogOpen} onClose={() => setReportDialogOpen(false)}>
-        <DialogTitle>Generate Report</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Report Type</InputLabel>
-            <Select label="Report Type">
-              <MenuItem value="performance">Performance Report</MenuItem>
-              <MenuItem value="sdg">SDG Impact Report</MenuItem>
-              <MenuItem value="project">Project Summary</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            margin="dense"
-            label="Date Range"
-            type="text"
-            fullWidth
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setReportDialogOpen(false)}>Cancel</Button>
-          <Button onClick={() => setReportDialogOpen(false)} variant="contained" color="primary">
-            Generate
+    <Layout>
+      <div className="page-container py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Management Dashboard</h1>
+            <p className="text-muted-foreground">
+              Overview of platform activities, statistics, and reports
+            </p>
+          </div>
+          <Button>
+            Generate Report
           </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        </div>
+
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <Activity size={16} />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="projects" className="flex items-center gap-2">
+              <FileText size={16} />
+              Projects
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users size={16} />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart size={16} />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Total Projects</CardTitle>
+                  <CardDescription>All submitted projects</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">24</div>
+                  <p className="text-xs text-muted-foreground">+12% from last month</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Active Users</CardTitle>
+                  <CardDescription>Registered platform users</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">157</div>
+                  <p className="text-xs text-muted-foreground">+5% from last month</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Engagement</CardTitle>
+                  <CardDescription>Average project interactions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">89%</div>
+                  <p className="text-xs text-muted-foreground">+7% from last month</p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Platform Activity</CardTitle>
+                <CardDescription>User engagement over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg">
+                  <p className="text-muted-foreground">Activity Chart Placeholder</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Projects Tab */}
+          <TabsContent value="projects" className="space-y-4">
+                  <Card>
+              <CardHeader>
+                <CardTitle>Project Distribution</CardTitle>
+                <CardDescription>Projects by SDG category</CardDescription>
+              </CardHeader>
+                    <CardContent>
+                <div className="h-96 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg">
+                  <p className="text-muted-foreground">SDG Distribution Chart Placeholder</p>
+                </div>
+                    </CardContent>
+                  </Card>
+          </TabsContent>
+          
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-4">
+                  <Card>
+              <CardHeader>
+                <CardTitle>User Demographics</CardTitle>
+                <CardDescription>User distribution by role</CardDescription>
+              </CardHeader>
+                    <CardContent>
+                <div className="h-96 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg">
+                  <p className="text-muted-foreground">User Demographics Chart Placeholder</p>
+                </div>
+                    </CardContent>
+                  </Card>
+          </TabsContent>
+          
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4">
+                  <Card>
+              <CardHeader>
+                <CardTitle>Performance Metrics</CardTitle>
+                <CardDescription>Key performance indicators</CardDescription>
+              </CardHeader>
+                    <CardContent>
+                <div className="h-96 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg">
+                  <p className="text-muted-foreground">KPI Dashboard Placeholder</p>
+                </div>
+                    </CardContent>
+                  </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Layout>
   );
 };
 

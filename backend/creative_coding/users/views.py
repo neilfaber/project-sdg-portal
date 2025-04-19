@@ -60,6 +60,29 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         
         return Response({'status': f'User status updated to {status}'})
 
+class ListUsersView(generics.ListAPIView):
+    """
+    View to list all active students in the system.
+    Used for team member selection in projects.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        # Only return active students, excluding the requesting user
+        return User.objects.filter(
+            status='active',
+            role='student'
+        ).exclude(id=self.request.user.id)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'status': 'success',
+            'users': serializer.data
+        })
+
 # Custom exception handler
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)

@@ -7,7 +7,7 @@ import { GithubIcon, LogIn } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -30,6 +30,8 @@ const SignIn = () => {
     setIsLoading(true);
 
     try {
+      console.log("Attempting login with email:", formData.email);
+      
       // Send login request to backend
       const response = await axios.post(`${API_BASE_URL}/users/login/`, {
         email: formData.email,
@@ -37,6 +39,8 @@ const SignIn = () => {
       });
 
       if (response.data) {
+        console.log("Login successful, response:", response.data);
+        
         // Store tokens and user data
         const { access, refresh, user } = response.data;
         localStorage.setItem('accessToken', access);
@@ -48,13 +52,54 @@ const SignIn = () => {
           description: `Welcome back, ${user.full_name}!`
         });
         
-        navigate('/profile');
+        // Redirect based on user role
+        switch(user.role) {
+          case 'admin':
+            navigate('/admin');
+            break;
+          case 'faculty':
+            navigate('/teachers');
+            break;
+          case 'management':
+            navigate('/management');
+            break;
+          case 'student':
+            navigate('/profile');
+            break;
+          default:
+            navigate('/profile');
+            break;
+        }
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.detail ||
-                         error.response?.data?.message ||
-                         "Invalid email or password. Please try again.";
+      
+      // Extract error message from the response
+      let errorMessage = "Invalid email or password. Please try again.";
+      
+      if (error.response) {
+        console.log("Error response data:", error.response.data);
+        
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else {
+          // Try to extract specific field errors
+          const fieldErrors = [];
+          for (const [field, messages] of Object.entries(error.response.data)) {
+            if (Array.isArray(messages)) {
+              fieldErrors.push(`${field}: ${messages.join(', ')}`);
+            } else if (typeof messages === 'string') {
+              fieldErrors.push(`${field}: ${messages}`);
+            }
+          }
+          
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join('\n');
+          }
+        }
+      }
       
       toast({
         title: "Login failed",

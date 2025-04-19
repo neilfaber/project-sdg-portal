@@ -9,7 +9,7 @@ import { useToast } from '../components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -90,6 +90,13 @@ const SignUp = () => {
     setIsLoading(true);
 
     try {
+      console.log("Sending signup request with data:", {
+        email: formData.email,
+        username: formData.username,
+        full_name: formData.full_name,
+        role: formData.role
+      });
+      
       // Send signup request to backend
       const response = await axios.post(`${API_BASE_URL}/users/signup/`, {
         email: formData.email,
@@ -101,6 +108,8 @@ const SignUp = () => {
       });
 
       if (response.data) {
+        console.log("Signup successful, response:", response.data);
+        
         // Store the tokens in localStorage
         localStorage.setItem('accessToken', response.data.access);
         localStorage.setItem('refreshToken', response.data.refresh);
@@ -119,13 +128,36 @@ const SignUp = () => {
           navigate('/profile'); // Default redirect
         }
       }
-      }
-      catch (error: any) {
+    } catch (error: any) {
       console.error('Signup error:', error);
-      const errorMessage = error.response?.data?.message || 
-                         error.response?.data?.password?.[0] ||
-                         error.response?.data?.email?.[0] ||
-                         "An error occurred during signup. Please try again.";
+      
+      // Extract error message from the response
+      let errorMessage = "An error occurred during signup. Please try again.";
+      
+      if (error.response) {
+        console.log("Error response data:", error.response.data);
+        
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else {
+          // Try to extract specific field errors
+          const fieldErrors = [];
+          for (const [field, messages] of Object.entries(error.response.data)) {
+            if (Array.isArray(messages)) {
+              fieldErrors.push(`${field}: ${messages.join(', ')}`);
+            } else if (typeof messages === 'string') {
+              fieldErrors.push(`${field}: ${messages}`);
+            }
+          }
+          
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join('\n');
+          }
+        }
+      }
+      
       toast({
         title: "Signup failed",
         description: errorMessage,

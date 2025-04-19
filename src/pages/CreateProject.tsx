@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Layout from '../components/Layout';
@@ -7,13 +7,17 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Checkbox } from '../components/ui/checkbox';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '../components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ImagePlus, Upload } from 'lucide-react';
 import SDGBadge from '../components/SDGBadge';
 import { useToast } from '../components/ui/use-toast';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -34,19 +38,120 @@ const projectSchema = z.object({
   description: z.string().min(20, 'Description must be at least 20 characters'),
   category: z.string().min(1, 'Please select a category'),
   teamName: z.string().min(3, 'Team name must be at least 3 characters'),
-  teamMembers: z.string().min(3, 'Please add at least one team member'),
-  githubLink: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  mediaLink: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  sdgs: z.array(z.number()).min(1, 'Please select at least one SDG goal')
+  teamMembers: z.array(z.string()),
+  githubLink: z.string().optional().transform(val => val || ''),
+  mediaLink: z.string().optional().transform(val => val || ''),
+  sdgs: z.array(z.number()),
+  agreeTerms: z.boolean()
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
+
+// Add this debug function
+const debugFormState = (form: any) => {
+  console.log('Form State Debug:');
+  console.log('- Is Form Valid:', form.formState.isValid);
+  console.log('- Form Errors:', form.formState.errors);
+  console.log('- Form Values:', form.getValues());
+  console.log('- Dirty Fields:', form.formState.dirtyFields);
+  console.log('- Touched Fields:', form.formState.touchedFields);
+};
 
 const CreateProject = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [users, setUsers] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
+
+  // Fetch students on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          console.error('No access token found');
+          toast({
+            title: "Authentication Error",
+            description: "Please sign in to create a project",
+            variant: "destructive"
+          });
+          navigate('/signin');
+          return;
+        }
+
+        const studentsUrl = `${API_BASE_URL}/users/students/`;
+        console.log('Fetching students from:', studentsUrl);
+        console.log('Using token:', token.substring(0, 10) + '...');
+        
+        const response = await axios.get(studentsUrl, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Full response:', JSON.stringify(response.data, null, 2));
+        
+        if (response.data.status === 'success' && Array.isArray(response.data.users)) {
+          console.log('Number of students loaded:', response.data.users.length);
+          console.log('First student example:', response.data.users[0]);
+          setUsers(response.data.users);
+          setFilteredUsers(response.data.users);
+        } else {
+          console.error('Unexpected response format:', response.data);
+          toast({
+            title: "Error",
+            description: "Received unexpected data format from server",
+            variant: "destructive"
+          });
+        }
+      } catch (error: any) {
+        console.error('Full error object:', error);
+        console.error('Error response:', error.response);
+        console.error('Error message:', error.message);
+        
+        if (error.response?.status === 401) {
+          toast({
+            title: "Session Expired",
+            description: "Please sign in again to continue",
+            variant: "destructive"
+          });
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          navigate('/signin');
+          return;
+        }
+
+        toast({
+          title: "Error fetching students",
+          description: error.response?.data?.message || "Could not load students. Please try again.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    fetchUsers();
+  }, [navigate, toast]);
+
+  // Update filteredUsers when search query or users change
+  useEffect(() => {
+    console.log('Search query:', searchQuery);
+    console.log('All users:', users);
+    
+    const filtered = users.filter(user => {
+      const matchesName = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesEmail = user.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesName || matchesEmail;
+    });
+    
+    console.log('Filtered users:', filtered);
+    setFilteredUsers(filtered);
+  }, [searchQuery, users]);
 
   // Initialize the form with default values
   const form = useForm<ProjectFormValues>({
@@ -56,10 +161,11 @@ const CreateProject = () => {
       description: '',
       category: '',
       teamName: '',
-      teamMembers: '',
+      teamMembers: [],
       githubLink: '',
       mediaLink: '',
-      sdgs: []
+      sdgs: [],
+      agreeTerms: false
     }
   });
 
@@ -83,11 +189,65 @@ const CreateProject = () => {
     }
   };
 
+  // Add this function to get selected user names
+  const getSelectedUserNames = (selectedIds: string[]) => {
+    return users
+      .filter(user => selectedIds.includes(user.id))
+      .map(user => user.full_name)
+      .join(', ');
+  };
+
   const onSubmit = async (data: ProjectFormValues) => {
+    console.log('onSubmit function called');
+    console.log('Form data received:', JSON.stringify(data, null, 2));
+    
+    // Validate required fields
+    const requiredFields = {
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      teamName: data.teamName,
+      teamMembers: data.teamMembers,
+      sdgs: data.sdgs,
+      agreeTerms: data.agreeTerms
+    };
+
+    console.log('Checking required fields:', requiredFields);
+
+    // Check each required field
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => {
+        if (Array.isArray(value)) {
+          return value.length === 0;
+        }
+        return !value;
+      })
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      console.log('Missing required fields:', missingFields);
+      toast({
+        title: "Missing Required Fields",
+        description: `Please fill in: ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!data.agreeTerms) {
+      console.log('Terms not accepted');
+      toast({
+        title: "Terms and Conditions",
+        description: "Please accept the terms and conditions to continue.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('All validation passed, proceeding with submission');
     setUploading(true);
     
     try {
-      // Get the access token from localStorage
       const token = localStorage.getItem('accessToken');
       if (!token) {
         toast({
@@ -99,56 +259,107 @@ const CreateProject = () => {
         return;
       }
 
-      // First, create a team with the correct URL
+      // First, create a team
+      console.log('Creating team with name:', data.teamName);
       const teamResponse = await axios.post(`${API_BASE_URL}/teams/teams/`, {
         team_name: data.teamName
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         }
       });
 
-      console.log('Team created:', teamResponse.data);
-      const teamId = teamResponse.data.team_id;
+      console.log('Team creation response:', JSON.stringify(teamResponse.data, null, 2));
 
-      // Team members require user IDs, which is beyond scope for this demo
-      // This would typically be handled by backend logic
-      
+      if (!teamResponse.data.team_id) {
+        throw new Error('Team creation failed: No team ID received');
+      }
+
+      const teamId = teamResponse.data.team_id;
+      console.log('Team created with ID:', teamId);
+
+      // Add team members
+      console.log('Adding team members:', data.teamMembers);
+      try {
+        const teamMemberPromises = data.teamMembers.map(async (userId) => {
+          console.log(`Adding team member ${userId} to team ${teamId}`);
+          const response = await axios.post(
+            `${API_BASE_URL}/teams/teams/${teamId}/add_member/`,
+            {
+              user_id: userId
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          console.log(`Team member ${userId} added:`, response.data);
+          return response;
+        });
+
+        const teamMemberResults = await Promise.all(teamMemberPromises);
+        console.log('All team members added:', teamMemberResults.map(r => r.data));
+      } catch (error: any) {
+        console.error('Error adding team members:', error);
+        if (error.response?.status === 405) {
+          throw new Error('Invalid endpoint for adding team members. Please contact support.');
+        }
+        throw new Error(error.response?.data?.error || 'Failed to add team members');
+      }
+
       // Create form data for project submission
       const formData = new FormData();
       formData.append('title', data.title);
       formData.append('description', data.description);
       formData.append('category', data.category);
-      formData.append('github_link', data.githubLink || '');
-      formData.append('media_link', data.mediaLink || '');
       formData.append('team', teamId.toString());
       
-      // Fix SDG format - backend expects a simple array of numbers
-      // Don't use JSON.stringify directly on form data
-      for (const sdg of data.sdgs) {
+      if (data.githubLink?.trim()) {
+        formData.append('github_link', data.githubLink.trim());
+      }
+      if (data.mediaLink?.trim()) {
+        formData.append('media_link', data.mediaLink.trim());
+      }
+      
+      data.sdgs.forEach(sdg => {
         formData.append('sdgs', sdg.toString());
-      }
-
-      // Add the thumbnail if it exists
-      if (selectedImage) {
-        // Convert base64 to blob
-        const base64Response = await fetch(selectedImage);
-        const blob = await base64Response.blob();
-        formData.append('thumbnail', blob, 'thumbnail.jpg');
-      }
-
-      // Log form data for debugging
-      console.log('Form data keys:', [...formData.entries()].map(entry => `${entry[0]}: ${entry[1]}`));
-
-      // Submit the project with the right endpoint
-      const projectResponse = await axios.post(`${API_BASE_URL}/projects/projects/submit/`, formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
       });
 
-      console.log('Project submitted successfully:', projectResponse.data);
+      if (selectedImage) {
+        try {
+          const base64Response = await fetch(selectedImage);
+          const blob = await base64Response.blob();
+          formData.append('thumbnail', blob, 'thumbnail.jpg');
+        } catch (error) {
+          console.error('Error processing thumbnail:', error);
+        }
+      }
+
+      // Log form data entries for debugging
+      console.log('Submitting project with form data:');
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      // Submit the project
+      const submitUrl = `${API_BASE_URL}/projects/projects/submit/`;
+      console.log('Submitting to URL:', submitUrl);
+      
+      const projectResponse = await axios.post(
+        submitUrl,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      console.log('Project submission response:', JSON.stringify(projectResponse.data, null, 2));
 
       toast({
         title: "Success!",
@@ -157,44 +368,34 @@ const CreateProject = () => {
       
       navigate('/profile');
     } catch (error: any) {
-      console.error('Error submitting project:', error);
+      console.error('Full error object:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error message:', error.message);
       
-      // Show detailed error information
-      if (error.response) {
-        console.error('Error response:', {
-          data: error.response.data,
-          status: error.response.status,
-          headers: error.response.headers
-        });
-        
-        // Format error message for toast
-        let errorMessage = "Failed to submit project. Please try again.";
-        
-        if (error.response.data) {
-          if (typeof error.response.data === 'string') {
-            errorMessage = error.response.data;
-          } else if (error.response.data.detail) {
-            errorMessage = error.response.data.detail;
-          } else if (typeof error.response.data === 'object') {
-            // Format object errors
-            errorMessage = Object.entries(error.response.data)
-              .map(([key, value]) => `${key}: ${value}`)
-              .join(', ');
-          }
+      let errorMessage = "Failed to submit project. ";
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage += error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage += error.response.data.detail;
+        } else if (error.response.data.error) {
+          errorMessage += error.response.data.error;
+        } else if (typeof error.response.data === 'object') {
+          const errors = Object.entries(error.response.data)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(', ');
+          errorMessage += errors;
         }
-        
-        toast({
-          title: `Error (${error.response.status})`,
-          description: errorMessage,
-          variant: "destructive"
-        });
       } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to submit project. Please try again.",
-          variant: "destructive"
-        });
+        errorMessage += error.message || "Please try again.";
       }
+
+      toast({
+        title: "Submission Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
       setUploading(false);
     }
@@ -218,7 +419,48 @@ const CreateProject = () => {
         
         <div className="glass-card rounded-xl p-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                console.log('Form submitted');
+                const values = form.getValues();
+                console.log('Current form values:', values);
+                
+                // Validate required fields manually
+                if (!values.title || values.title.length < 5) {
+                  toast({ title: "Error", description: "Title must be at least 5 characters", variant: "destructive" });
+                  return;
+                }
+                if (!values.description || values.description.length < 20) {
+                  toast({ title: "Error", description: "Description must be at least 20 characters", variant: "destructive" });
+                  return;
+                }
+                if (!values.category) {
+                  toast({ title: "Error", description: "Please select a category", variant: "destructive" });
+                  return;
+                }
+                if (!values.teamName || values.teamName.length < 3) {
+                  toast({ title: "Error", description: "Team name must be at least 3 characters", variant: "destructive" });
+                  return;
+                }
+                if (!values.teamMembers || values.teamMembers.length === 0) {
+                  toast({ title: "Error", description: "Please select at least one team member", variant: "destructive" });
+                  return;
+                }
+                if (!values.sdgs || values.sdgs.length === 0) {
+                  toast({ title: "Error", description: "Please select at least one SDG goal", variant: "destructive" });
+                  return;
+                }
+                if (!values.agreeTerms) {
+                  toast({ title: "Error", description: "Please accept the terms and conditions", variant: "destructive" });
+                  return;
+                }
+
+                // If all validation passes, call onSubmit
+                onSubmit(values);
+              }}
+              className="space-y-8"
+            >
               {/* Project Image */}
               <div>
                 <FormLabel>Project Image</FormLabel>
@@ -273,7 +515,6 @@ const CreateProject = () => {
                       <FormControl>
                         <Input placeholder="Enter project title" {...field} />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -301,7 +542,6 @@ const CreateProject = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -320,7 +560,6 @@ const CreateProject = () => {
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -336,7 +575,6 @@ const CreateProject = () => {
                       <FormControl>
                         <Input placeholder="Enter your team name" {...field} />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -345,15 +583,86 @@ const CreateProject = () => {
                   control={form.control}
                   name="teamMembers"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Team Members</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., john@example.com, jane@example.com" {...field} />
-                      </FormControl>
-                      <FormDescription className="text-xs">
-                        Separate member emails with commas
+                      <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              type="button"
+                              aria-expanded={open}
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value?.length && "text-muted-foreground"
+                              )}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setOpen(!open);
+                              }}
+                            >
+                              {field.value?.length > 0
+                                ? getSelectedUserNames(field.value)
+                                : "Select team members..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <div className="flex flex-col">
+                            <div className="flex items-center border-b px-3 pb-2">
+                              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                              <input
+                                placeholder="Search students..."
+                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                              />
+                            </div>
+                            <div className="max-h-[300px] overflow-y-auto">
+                              {filteredUsers.length === 0 ? (
+                                <div className="p-4 text-sm text-muted-foreground">
+                                  No students found.
+                                </div>
+                              ) : (
+                                filteredUsers.map((user) => (
+                                  <div
+                                    key={user.id}
+                                    className={cn(
+                                      "flex items-center px-4 py-2 cursor-pointer hover:bg-accent",
+                                      field.value?.includes(user.id) && "bg-accent"
+                                    )}
+                                    onClick={() => {
+                                      const currentValue = Array.isArray(field.value) ? field.value : [];
+                                      const newValue = currentValue.includes(user.id)
+                                        ? currentValue.filter((id) => id !== user.id)
+                                        : [...currentValue, user.id];
+                                      field.onChange(newValue);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value?.includes(user.id) ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div>
+                                      <div className="font-medium">{user.full_name}</div>
+                                      <div className="text-xs text-muted-foreground">{user.email}</div>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription className="text-sm text-muted-foreground mt-1">
+                        {field.value?.length > 0 
+                          ? `${field.value.length} team member${field.value.length === 1 ? '' : 's'} selected`
+                          : "Select students to add to your team"}
                       </FormDescription>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -368,7 +677,6 @@ const CreateProject = () => {
                     <FormControl>
                       <Input placeholder="https://github.com/username/repository" {...field} />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -385,7 +693,6 @@ const CreateProject = () => {
                     <FormDescription className="text-xs">
                       Add a link to a video demo, presentation, or other media showcasing your project
                     </FormDescription>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -419,30 +726,44 @@ const CreateProject = () => {
                         );
                       })}
                     </div>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
               
               {/* Terms and Conditions */}
-              <div className="flex items-top space-x-2">
-                <Checkbox id="terms" />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor="terms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Accept terms and conditions
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    By submitting this project, you agree to our terms of service and privacy policy.
-                  </p>
-                </div>
-              </div>
+              <FormField
+                control={form.control}
+                name="agreeTerms"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Accept terms and conditions
+                      </FormLabel>
+                      <FormDescription>
+                        By submitting this project, you agree to our terms of service and privacy policy.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
               
               {/* Submit Button */}
               <div className="flex justify-end">
-                <Button type="submit" disabled={uploading}>
+                <Button 
+                  type="submit"
+                  className={cn(
+                    "transition-all",
+                    uploading && "opacity-50 cursor-not-allowed"
+                  )}
+                  disabled={uploading}
+                >
                   {uploading ? (
                     <>
                       <Upload className="mr-2 h-4 w-4 animate-spin" />
