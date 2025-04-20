@@ -18,10 +18,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from teams.models import TeamMember
 from users.models import User
+from engagement.models import Feedback
 
 class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.role == 'admin'
+
+class IsFaculty(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role == 'faculty'
 
 # Create your views here.
 
@@ -239,3 +244,59 @@ class RejectedProjectsView(generics.ListAPIView):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+class FeedbackCreateView(generics.CreateAPIView):
+    """API endpoint to create feedback for a project by faculty"""
+    permission_classes = [IsFaculty]
+    
+    def create(self, request, *args, **kwargs):
+        project_id = request.data.get('project_id')
+        rating = request.data.get('rating')
+        content = request.data.get('content')
+        
+        # Validate data
+        if not all([project_id, rating, content]):
+            return Response(
+                {"error": "Missing required fields. Please provide project_id, rating, and content."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            # Ensure the project exists
+            project = Project.objects.get(project_id=project_id)
+            
+            # Check if the faculty is assigned to this project's team
+            user = request.user
+            team = project.team
+            is_assigned = TeamMember.objects.filter(team=team, user=user).exists()
+            
+            if not is_assigned and user.role != 'admin':
+                return Response(
+                    {"error": "You are not assigned to this project and cannot provide feedback."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+                
+            # Create the feedback
+            feedback = Feedback.objects.create(
+                project=project,
+                user=user,
+                rating=rating,
+                comment=content
+            )
+            
+            return Response({
+                "success": True,
+                "message": "Feedback submitted successfully",
+                "feedback_id": feedback.feedback_id
+            }, status=status.HTTP_201_CREATED)
+            
+        except Project.DoesNotExist:
+            return Response(
+                {"error": f"Project with ID {project_id} not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Error creating feedback: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

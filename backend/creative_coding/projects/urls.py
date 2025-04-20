@@ -4,7 +4,8 @@ from .views import (
     ProjectListView, CategoryListView, SDGListView,
     ProjectDetailView, RatingRangeListView,
     ProjectSubmissionView, AdminProjectViewSet,
-    UserProjectsView, RejectedProjectsView
+    UserProjectsView, RejectedProjectsView,
+    FeedbackCreateView
 )
 
 router = DefaultRouter()
@@ -20,6 +21,7 @@ urlpatterns = [
     path('rating-ranges/', RatingRangeListView.as_view(), name='rating-ranges'),
     path('user-projects/', UserProjectsView.as_view(), name='user-projects'),
     path('admin/rejected/', RejectedProjectsView.as_view(), name='rejected-projects'),
+    path('feedback/', FeedbackCreateView.as_view(), name='create-feedback'),
     path('admin/projects/<int:pk>/', AdminProjectViewSet.as_view({
         'get': 'retrieve',
         'put': 'update',
