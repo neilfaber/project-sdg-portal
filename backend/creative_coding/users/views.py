@@ -83,6 +83,35 @@ class ListUsersView(generics.ListAPIView):
             'users': serializer.data
         })
 
+class ListTeachersView(generics.ListAPIView):
+    """
+    View to list all teachers in the system.
+    Only accessible by admin and management users.
+    """
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role not in ['admin', 'management']:
+            return User.objects.none()
+        return User.objects.filter(role='teacher').order_by('-created_at')
+
+    def list(self, request, *args, **kwargs):
+        user = request.user
+        if user.role not in ['admin', 'management']:
+            return Response(
+                {'error': 'You do not have permission to view this resource'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'status': 'success',
+            'teachers': serializer.data
+        })
+
 # Custom exception handler
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
