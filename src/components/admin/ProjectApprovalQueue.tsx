@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
@@ -16,22 +15,38 @@ const ProjectApprovalQueue = () => {
   const navigate = useNavigate();
   const [approvalTab, setApprovalTab] = React.useState('pending');
 
-  const handleApprove = (projectId: number) => {
-    approveProject(projectId);
-    
-    toast({
-      title: "Project Approved",
-      description: `Project has been approved and is now visible on the discover page.`,
-    });
+  const handleApprove = async (projectId: number) => {
+    try {
+      await approveProject(projectId);
+      toast({
+        title: "Project Approved",
+        description: "Project has been approved and is now visible on the discover page.",
+      });
+    } catch (error) {
+      console.error('Error approving project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve project. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
-  const handleReject = (projectId: number) => {
-    rejectProject(projectId);
-    
-    toast({
-      title: "Project Rejected",
-      description: `Project has been rejected.`,
-    });
+  const handleReject = async (projectId: number) => {
+    try {
+      await rejectProject(projectId);
+      toast({
+        title: "Project Rejected",
+        description: "Project has been rejected.",
+      });
+    } catch (error) {
+      console.error('Error rejecting project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject project. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getProjectsByTab = () => {
@@ -103,7 +118,7 @@ const ProjectApprovalQueue = () => {
                     <TableCell>{project.team.name}</TableCell>
                     <TableCell>{project.category}</TableCell>
                     <TableCell>{project.createdAt}</TableCell>
-                    <TableCell className="flex space-x-2">
+                    <TableCell className="space-x-2">
                       {approvalTab === 'pending' ? (
                         <>
                           <Button 

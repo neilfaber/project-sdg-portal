@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { mockProjects } from '../data/mockData';
 import { ProjectData } from '../components/ProjectCard';
 import axios from 'axios';
+import { useToast } from "@/components/ui/use-toast";
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -51,12 +52,18 @@ export const useProjects = (): UseProjectsReturn => {
   const [pendingProjects, setPendingProjects] = useState<ProjectData[]>([]);
   const [approvedProjects, setApprovedProjects] = useState<ProjectData[]>([]);
   const [rejectedProjects, setRejectedProjects] = useState<ProjectData[]>([]);
+  const { toast } = useToast();
   
   // Function to load and categorize projects
   const refreshProjects = async () => {
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
       console.error("No access token found");
+      toast({
+        title: "Authentication Error",
+        description: "Please sign in again to continue",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -106,12 +113,35 @@ export const useProjects = (): UseProjectsReturn => {
       const approvedData = approvedResponse.data.map(transformProject);
       const rejectedData = rejectedResponse.data.map(transformProject);
       
-      setPendingProjects(pendingData);
+      // Filter out duplicates - ensure a project only appears in one category
+      // Get all project IDs
+      const approvedIds = new Set(approvedData.map(p => p.id));
+      const rejectedIds = new Set(rejectedData.map(p => p.id));
+      
+      // Filter pending projects to remove any that are also in approved or rejected
+      const filteredPendingData = pendingData.filter(p => 
+        !approvedIds.has(p.id) && !rejectedIds.has(p.id)
+      );
+      
+      setPendingProjects(filteredPendingData);
       setApprovedProjects(approvedData);
       setRejectedProjects(rejectedData);
-      setAllProjects([...pendingData, ...approvedData, ...rejectedData]);
+      
+      // Combine all projects for the allProjects state
+      setAllProjects([...filteredPendingData, ...approvedData, ...rejectedData]);
+      
+      console.log("Projects loaded:", {
+        pending: filteredPendingData.length,
+        approved: approvedData.length,
+        rejected: rejectedData.length
+      });
     } catch (error) {
       console.error('Error fetching projects:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load projects. Please try again.",
+        variant: "destructive"
+      });
       
       // Fallback to mock data if API fails
       let projects = [...mockProjects].map(project => ({
@@ -136,7 +166,11 @@ export const useProjects = (): UseProjectsReturn => {
   const approveProject = async (projectId: number) => {
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
-      console.error("No access token found");
+      toast({
+        title: "Authentication Error",
+        description: "Please sign in again to continue",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -152,20 +186,32 @@ export const useProjects = (): UseProjectsReturn => {
         }
       );
       
-      // Refresh the projects to reflect the updated status
-      refreshProjects();
+      // Update local state
+      const projectToMove = pendingProjects.find(p => p.id === projectId);
+      if (projectToMove) {
+        const updatedProject = { ...projectToMove, status: 'approved' };
+        
+        // Update all relevant state atomically
+        setPendingProjects(prev => prev.filter(p => p.id !== projectId));
+        setApprovedProjects(prev => [...prev, updatedProject]);
+        setAllProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+      }
+
+      toast({
+        title: "Success",
+        description: "Project has been approved successfully",
+        variant: "default"
+      });
+      
     } catch (error) {
       console.error('Error approving project:', error);
-      
-      // Fallback to local state update if API fails
-      const updatedProjects = allProjects.map(p => 
-        p.id === projectId ? { ...p, status: 'approved' } : p
-      );
-      
-      setAllProjects(updatedProjects);
-      setPendingProjects(updatedProjects.filter(p => p.status === 'pending'));
-      setApprovedProjects(updatedProjects.filter(p => p.status === 'approved'));
-      setRejectedProjects(updatedProjects.filter(p => p.status === 'rejected'));
+      toast({
+        title: "Error",
+        description: "Failed to approve project. Please try again.",
+        variant: "destructive"
+      });
+      // Only refresh projects if there was an error
+      refreshProjects();
     }
   };
   
@@ -173,7 +219,11 @@ export const useProjects = (): UseProjectsReturn => {
   const rejectProject = async (projectId: number) => {
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
-      console.error("No access token found");
+      toast({
+        title: "Authentication Error",
+        description: "Please sign in again to continue",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -189,20 +239,23 @@ export const useProjects = (): UseProjectsReturn => {
         }
       );
       
-      // Refresh the projects to reflect the updated status
+      // Update local state immediately before refreshing
+      const projectToMove = pendingProjects.find(p => p.id === projectId);
+      if (projectToMove) {
+        const updatedProject = { ...projectToMove, status: 'rejected' };
+        setPendingProjects(prev => prev.filter(p => p.id !== projectId));
+        setRejectedProjects(prev => [...prev, updatedProject]);
+      }
+      
+      // Refresh the projects to ensure sync with backend
       refreshProjects();
     } catch (error) {
       console.error('Error rejecting project:', error);
-      
-      // Fallback to local state update if API fails
-      const updatedProjects = allProjects.map(p => 
-        p.id === projectId ? { ...p, status: 'rejected' } : p
-      );
-      
-      setAllProjects(updatedProjects);
-      setPendingProjects(updatedProjects.filter(p => p.status === 'pending'));
-      setApprovedProjects(updatedProjects.filter(p => p.status === 'approved'));
-      setRejectedProjects(updatedProjects.filter(p => p.status === 'rejected'));
+      toast({
+        title: "Error",
+        description: "Failed to reject project. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   

@@ -17,6 +17,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from teams.models import TeamMember
+from users.models import User
 
 class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -133,7 +134,7 @@ class ProjectSubmissionView(generics.CreateAPIView):
         serializer.save()
 
 class AdminProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.filter(status='pending')
+    queryset = Project.objects.all()  # Changed to show all projects
     serializer_class = ProjectAdminSerializer
     permission_classes = [IsAdmin]
 
@@ -152,6 +153,49 @@ class AdminProjectViewSet(viewsets.ModelViewSet):
         project.admin_remarks = request.data.get('remarks', '')
         project.save()
         return Response({'status': 'project rejected'})
+
+    @action(detail=True, methods=['post'])
+    def assign_teacher(self, request, pk=None):
+        project = self.get_object()
+        teacher_id = request.data.get('teacher_id')
+        
+        try:
+            # Accept both 'teacher' and 'faculty' roles
+            teacher = User.objects.filter(
+                id=teacher_id, 
+                role__in=['teacher', 'faculty'], 
+                status='active'
+            ).first()
+            
+            if not teacher:
+                return Response(
+                    {'error': 'Teacher not found or user is not an active teacher/faculty'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+        except Exception as e:
+            return Response(
+                {'error': f'Error finding teacher: {str(e)}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Add teacher to the project's team
+        team = project.team
+        if TeamMember.objects.filter(team=team, user=teacher).exists():
+            return Response(
+                {'error': 'Teacher is already assigned to this project'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        TeamMember.objects.create(team=team, user=teacher)
+        return Response({
+            'status': 'teacher assigned successfully',
+            'teacher': {
+                'id': teacher.id,
+                'full_name': teacher.full_name,
+                'role': teacher.role
+            }
+        })
 
 class YourView(APIView):
     permission_classes = [IsAuthenticated]

@@ -20,4 +20,12 @@ urlpatterns = [
     path('rating-ranges/', RatingRangeListView.as_view(), name='rating-ranges'),
     path('user-projects/', UserProjectsView.as_view(), name='user-projects'),
     path('admin/rejected/', RejectedProjectsView.as_view(), name='rejected-projects'),
+    path('admin/projects/<int:pk>/', AdminProjectViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'update',
+        'patch': 'partial_update'
+    }), name='admin-project-detail'),
+    path('admin/projects/<int:pk>/approve/', AdminProjectViewSet.as_view({'post': 'approve'}), name='admin-project-approve'),
+    path('admin/projects/<int:pk>/reject/', AdminProjectViewSet.as_view({'post': 'reject'}), name='admin-project-reject'),
+    path('admin/projects/<int:pk>/assign_teacher/', AdminProjectViewSet.as_view({'post': 'assign_teacher'}), name='admin-project-assign-teacher'),
 ] 
