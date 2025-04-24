@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'channels',
+    'daphne',
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
@@ -45,6 +47,7 @@ INSTALLED_APPS = [
     'users',
     'teams',
     'engagement',
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -77,6 +80,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'creative_coding.wsgi.application'
+ASGI_APPLICATION = 'creative_coding.asgi.application'
+
+# Channels configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database
@@ -134,7 +145,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",  # React frontend URL
+    "http://127.0.0.1:8080",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
+
+# Allow all origins during development
+CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies (if using authentication)
 
@@ -151,6 +168,11 @@ CORS_ALLOW_HEADERS = [  # Allow specific headers
     "content-type",
     "authorization",
     "x-requested-with",
+]
+
+# Allow WebSocket protocol
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^(http|https|ws|wss)://.*$",
 ]
 
 REST_FRAMEWORK = {

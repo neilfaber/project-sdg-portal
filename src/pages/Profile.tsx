@@ -4,10 +4,12 @@ import Layout from '../components/Layout';
 import ProjectCard, { ProjectData } from '../components/ProjectCard';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Edit2, LogOut, Plus, Settings, User } from 'lucide-react';
+import { Edit2, LogOut, Plus, Settings, User, MessageCircle } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
 import axios from 'axios';
 import { Badge } from '../components/ui/badge';
+import ChatRoomList from '../components/chat/ChatRoomList';
+import ChatInterface from '../components/chat/ChatInterface';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -32,6 +34,7 @@ const Profile = () => {
   const [userProjects, setUserProjects] = useState<UserProjectData[]>([]);
   const [savedProjects, setSavedProjects] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedChatRoomId, setSelectedChatRoomId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -110,6 +113,10 @@ const Profile = () => {
     }
   };
 
+  const handleChatRoomSelect = (roomId: number) => {
+    setSelectedChatRoomId(roomId);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -166,6 +173,9 @@ const Profile = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="myprojects" className="px-6">My Projects</TabsTrigger>
             <TabsTrigger value="saved" className="px-6">Saved Projects</TabsTrigger>
+            <TabsTrigger value="chat" className="px-6">
+              <MessageCircle size={16} className="mr-2" /> Chat
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="myprojects">
@@ -230,6 +240,38 @@ const Profile = () => {
                 </Link>
               </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="chat">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold">Chat with Faculty</h2>
+              <p className="text-muted-foreground">
+                Connect with your assigned faculty members to discuss your projects.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="glass-card rounded-xl p-4">
+                <h3 className="text-lg font-semibold mb-4">Chat Rooms</h3>
+                <ChatRoomList onRoomSelect={handleChatRoomSelect} />
+              </div>
+              <div className="glass-card rounded-xl p-4 md:col-span-2">
+                {selectedChatRoomId ? (
+                  <ChatInterface 
+                    roomId={selectedChatRoomId} 
+                    onClose={() => setSelectedChatRoomId(null)} 
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+                    <MessageCircle size={48} className="text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-medium mb-2">Select a Chat Room</h3>
+                    <p className="text-muted-foreground">
+                      Choose a chat room from the list to start messaging with your faculty.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/projects/', include('projects.urls')),
     path('api/teams/', include('teams.urls')),
+    path('api/chat/', include('chat.urls')),
     # JWT Authentication endpoints
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

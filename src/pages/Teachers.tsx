@@ -28,11 +28,16 @@ import {
 
 import {
   Assessment,
-  Comment,
+  Comment as CommentIcon,
   Feedback,
   Group,
   TrendingUp,
+  Add as AddIcon,
 } from '@mui/icons-material';
+
+import ChatRoomList from '../components/chat/ChatRoomList';
+import ChatInterface from '../components/chat/ChatInterface';
+import CreateChatRoomDialog from '../components/chat/CreateChatRoomDialog';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -71,14 +76,20 @@ interface FeedbackData {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
+
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
+      id={`teacher-tabpanel-${index}`}
+      aria-labelledby={`teacher-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && (
+        <Box sx={{ py: 3 }}>
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
@@ -98,6 +109,8 @@ const Teachers: React.FC = () => {
     project_id: ''
   });
   const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+  const [isCreateChatDialogOpen, setIsCreateChatDialogOpen] = useState(false);
 
   useEffect(() => {
     const checkFacultyStatus = async () => {
@@ -262,6 +275,22 @@ const Teachers: React.FC = () => {
     }
   };
 
+  // Handle selecting a chat room
+  const handleRoomSelect = (roomId: number) => {
+    setSelectedRoomId(roomId);
+  };
+  
+  // Handle creating a new chat room
+  const handleCreateChatRoom = () => {
+    setIsCreateChatDialogOpen(true);
+  };
+  
+  // Handle successful chat room creation
+  const handleChatRoomCreated = (roomId: number) => {
+    setSelectedRoomId(roomId);
+    setIsCreateChatDialogOpen(false);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -290,7 +319,7 @@ const Teachers: React.FC = () => {
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab icon={<Group />} label="Project Overview" />
               <Tab icon={<TrendingUp />} label="SDG Review" />
-              <Tab icon={<Comment />} label="Communication" />
+              <Tab icon={<CommentIcon />} label="Communication" />
               <Tab icon={<Feedback />} label="Feedback Management" />
             </Tabs>
           </Box>
@@ -387,30 +416,61 @@ const Teachers: React.FC = () => {
 
           <TabPanel value={tabValue} index={2}>
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid item xs={12} md={4}>
                 <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Team Communication
-                  </Typography>
-                  
-                  {projects.length === 0 ? (
-                    <Alert severity="info">No teams available for communication.</Alert>
-                  ) : (
-                    <List>
-                      {projects.map((project) => (
-                        <ListItem key={project.project_id} divider>
-                          <ListItemText
-                            primary={project.title}
-                            secondary={`Team: ${project.team?.name || 'Unknown'} | Last updated: ${new Date(project.created_at).toLocaleDateString()}`}
-                          />
-                          <Button variant="contained" color="primary">
-                            Send Message
-                          </Button>
-                        </ListItem>
-                      ))}
-                    </List>
-                  )}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">Chat Rooms</Typography>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={handleCreateChatRoom}
+                    >
+                      New Chat
+                    </Button>
+                  </Box>
+                  <ChatRoomList 
+                    onRoomSelect={handleRoomSelect} 
+                    createNewRoom={handleCreateChatRoom}
+                  />
                 </Paper>
+              </Grid>
+              
+              <Grid item xs={12} md={8}>
+                {selectedRoomId ? (
+                  <Paper sx={{ p: 2, height: '100%' }}>
+                    <ChatInterface 
+                      roomId={selectedRoomId} 
+                      onClose={() => setSelectedRoomId(null)}
+                    />
+                  </Paper>
+                ) : (
+                  <Paper 
+                    sx={{ 
+                      p: 4, 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      minHeight: '400px'
+                    }}
+                  >
+                    <CommentIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="h5" color="text.secondary" gutterBottom>
+                      Select a chat room
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
+                      Choose a team chat room from the list or create a new one to start messaging with your students.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={handleCreateChatRoom}
+                    >
+                      Create New Chat Room
+                    </Button>
+                  </Paper>
+                )}
               </Grid>
             </Grid>
           </TabPanel>
@@ -494,6 +554,13 @@ const Teachers: React.FC = () => {
               </Button>
             </DialogActions>
           </Dialog>
+
+          {/* Create Chat Room Dialog */}
+          <CreateChatRoomDialog
+            open={isCreateChatDialogOpen}
+            onClose={() => setIsCreateChatDialogOpen(false)}
+            onSuccess={handleChatRoomCreated}
+          />
         </Container>
       </div>
     </Layout>

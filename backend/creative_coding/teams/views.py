@@ -39,14 +39,32 @@ class StudentTeamViewSet(viewsets.ModelViewSet):
         # Automatically add the creator as a team member
         TeamMember.objects.create(team=team, user=self.request.user)
 
+    @action(detail=False, methods=['get'])
+    def assigned(self, request):
+        """Get teams assigned to a faculty member"""
+        user = request.user
+        
+        # Only faculty members can see their assigned teams
+        if user.role != 'faculty':
+            return Response(
+                {'error': 'Only faculty members can access their assigned teams'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # Get teams where the faculty is a member
+        teams = StudentTeam.objects.filter(teammember__user=user).distinct()
+        serializer = self.get_serializer(teams, many=True)
+        
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     def add_member(self, request, pk=None):
         team = self.get_object()
         
-        # Check if the requesting user is the team creator
-        if team.created_by != request.user:
+        # Check if the requesting user is the team creator or an admin
+        if not (team.created_by == request.user or request.user.role == 'admin'):
             return Response(
-                {'error': 'Only the team creator can add members'},
+                {'error': 'Only the team creator or admin can add members'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -55,18 +73,20 @@ class StudentTeamViewSet(viewsets.ModelViewSet):
             user_id = serializer.validated_data['user_id']
             try:
                 user = User.objects.get(id=user_id)
-                # Check if the user to be added is a student
-                if user.role != 'student':
-                    return Response(
-                        {'error': 'Only students can be added to teams'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
                 # Check if user is already a member
                 if TeamMember.objects.filter(team=team, user=user).exists():
                     return Response(
                         {'error': 'User is already a member of this team'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+                
+                # Allow both students and faculty to be added to teams
+                if user.role not in ['student', 'faculty']:
+                    return Response(
+                        {'error': 'Only students and faculty can be added to teams'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                    
                 TeamMember.objects.create(team=team, user=user)
                 return Response({'status': 'member added'}, status=status.HTTP_201_CREATED)
             except User.DoesNotExist:

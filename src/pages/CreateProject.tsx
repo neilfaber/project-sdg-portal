@@ -261,7 +261,7 @@ const CreateProject = () => {
 
       // First, create a team
       console.log('Creating team with name:', data.teamName);
-      const teamResponse = await axios.post(`${API_BASE_URL}/teams/teams/`, {
+      const teamResponse = await axios.post(`${API_BASE_URL}/teams/`, {
         team_name: data.teamName
       }, {
         headers: {
@@ -285,7 +285,7 @@ const CreateProject = () => {
         const teamMemberPromises = data.teamMembers.map(async (userId) => {
           console.log(`Adding team member ${userId} to team ${teamId}`);
           const response = await axios.post(
-            `${API_BASE_URL}/teams/teams/${teamId}/add_member/`,
+            `${API_BASE_URL}/teams/${teamId}/add_member/`,
             {
               user_id: userId
             },
