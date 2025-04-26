@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { useProject } from '../hooks/use-project';
 import { useToast } from "../components/ui/use-toast";
+import FeedbackSection from '../components/FeedbackSection';
 
 // SDG color mapping
 const SDG_COLORS: { [key: number]: string } = {
@@ -196,6 +197,9 @@ const ProjectDetail = () => {
             </div>
           </div>
         </div>
+        
+        {/* Feedback Section */}
+        <FeedbackSection projectId={project.project_id} />
       </div>
     </Layout>
   );

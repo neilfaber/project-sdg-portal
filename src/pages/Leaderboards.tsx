@@ -10,6 +10,11 @@ import { Star, Users, Eye, MessageSquare, Trophy, Award, Medal } from 'lucide-re
 import { mockProjects } from '../data/mockData';
 import SDGBadge from '../components/SDGBadge';
 
+// Helper function to get team name from project
+const getTeamName = (project: any) => {
+  return project.team_name || (project.team && project.team.name) || 'Unknown Team';
+};
+
 // Sort projects by engagement (for demonstration)
 const topProjects = [...mockProjects].sort((a, b) => {
   // Fake calculation of engagement score (rating * views)
@@ -84,7 +89,7 @@ const Leaderboards = () => {
                 </div>
                 <div className="relative h-36 overflow-hidden rounded-t-lg">
                   <img 
-                    src={project.image || 'https://placehold.co/600x400/9b87f5/ffffff?text=Project+Image'} 
+                    src={project.image || project.imageUrl || 'https://placehold.co/600x400/9b87f5/ffffff?text=Project+Image'} 
                     alt={project.title}
                     className="w-full h-full object-cover"
                   />
@@ -100,11 +105,11 @@ const Leaderboards = () => {
                 <CardContent className="pt-4">
                   <h3 className="font-bold text-lg mb-1 line-clamp-1">{project.title}</h3>
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-1">
-                    {project.team.name}
+                    {getTeamName(project)}
                   </p>
                   <div className="flex flex-wrap gap-1 mb-3">
                     {project.sdgs.slice(0, 3).map((sdg) => (
-                      <SDGBadge key={sdg} sdgNumber={sdg} size="sm" />
+                      <SDGBadge key={typeof sdg === 'object' ? sdg.sdg_id : sdg} sdgNumber={typeof sdg === 'object' ? sdg.sdg_number : sdg} size="sm" />
                     ))}
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -118,7 +123,7 @@ const Leaderboards = () => {
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      {project.team.members.length}
+                      {(project.team && project.team.members && project.team.members.length) || 3}
                     </div>
                   </div>
                 </CardContent>
@@ -180,7 +185,7 @@ const Leaderboards = () => {
                               {project.title}
                             </Link>
                           </TableCell>
-                          <TableCell>{project.team.name}</TableCell>
+                          <TableCell>{getTeamName(project)}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{project.category}</Badge>
                           </TableCell>

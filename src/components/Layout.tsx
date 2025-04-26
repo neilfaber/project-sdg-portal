@@ -99,6 +99,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </NavigationMenuItem>
                   
                   <NavigationMenuItem>
+                    <NavigationMenuLink 
+                      className={navigationMenuTriggerStyle()}
+                      asChild
+                    >
+                      <Link to="/leaderboards">Leaderboards</Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                  
+                  <NavigationMenuItem>
                     <NavigationMenuTrigger>Categories</NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -183,6 +192,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       }`}
                     >
                       Discover
+                    </Link>
+                    <Link
+                      to="/leaderboards"
+                      className={`font-medium transition-colors hover:text-primary ${
+                        location.pathname === '/leaderboards' ? 'text-primary' : 'text-foreground'
+                      }`}
+                    >
+                      Leaderboards
                     </Link>
                     
                     <div className="py-2">
