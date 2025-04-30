@@ -88,6 +88,50 @@ To provide a centralized platform where:
 
 ---
 
+## 🚀 How to Run the Project
+
+### 📦 Backend (Django)
+1. Clone the repository:
+   ```bash
+   git clone <your-repo-url>
+   cd backend
+   ```
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run migrations:
+   ```bash
+   python manage.py migrate
+   ```
+5. Start the server:
+   ```bash
+   python manage.py runserver
+   ```
+
+### 🌐 Frontend (React + Vite)
+1. Navigate to the frontend folder:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+Make sure the backend is running before starting the frontend for full functionality.
+
+---
+
 ## 📽️ Project Links
 
 - 🎥 **Demo Video**: [Watch the demo](https://www.loom.com/share/e91132917ae84c859ba3b64e55b366c1?sid=76af2063-0025-4c3e-b246-39782e46a40d)
